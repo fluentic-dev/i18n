@@ -1,0 +1,24 @@
+.box {
+  --icon-ink: #2656d8;
+  --icon-fill: #e7eeff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  margin-bottom: 20px;
+  border: 1px solid color-mix(in srgb, var(--icon-ink) 12%, transparent);
+  border-radius: 14px;
+  color: var(--icon-ink);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--icon-fill) 65%, white), var(--icon-fill));
+  box-shadow: inset 0 1px 0 #ffffffb3, 0 2px 3px #17255405;
+}
+.box svg { display: block; width: 24px; height: 24px; }
+.box[data-tone='violet'] { --icon-ink: #6845c6; --icon-fill: #eee7ff; }
+.box[data-tone='teal'] { --icon-ink: #137b78; --icon-fill: #ddf4ef; }
+.box[data-tone='lime'] { --icon-ink: #47751b; --icon-fill: #e0f8ba; }
+:global([data-theme='dark']) .box { background: color-mix(in srgb, var(--icon-ink) 14%, #1a2030); border-color: color-mix(in srgb, var(--icon-ink) 24%, transparent); box-shadow: inset 0 1px 0 #ffffff08; --icon-ink: #93b2ff; }
+:global([data-theme='dark']) .box[data-tone='violet'] { --icon-ink: #bda6ff; }
+:global([data-theme='dark']) .box[data-tone='teal'] { --icon-ink: #80d7c6; }
+:global([data-theme='dark']) .box[data-tone='lime'] { --icon-ink: #b9e77e; }

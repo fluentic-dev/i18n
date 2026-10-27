@@ -1,0 +1,21 @@
+.intro { display: flex; justify-content: space-between; align-items: start; gap: 24px; max-width: 900px; margin: -8px 0 24px; color: var(--muted); font-size: 14px; }
+.intro p { max-width: 620px; margin: 0; }
+.intro a { flex-shrink: 0; color: var(--blue); font-size: 13px; font-weight: 550; }
+.list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.card { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.card[open] { border-color: color-mix(in srgb, var(--blue) 45%, var(--line)); box-shadow: 0 8px 24px #2436650a; }
+.card summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 17px 18px; list-style: none; cursor: pointer; }
+.card summary::-webkit-details-marker { display: none; }
+.card summary > span:first-child { display: grid; gap: 4px; min-width: 0; }
+.card summary strong { color: var(--ink); font-size: 15px; font-weight: 600; }
+.card summary small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.toggle { display: grid; place-items: center; flex: 0 0 auto; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 50%; color: var(--blue); font-size: 17px; line-height: 1; }
+.card[open] .toggle { transform: rotate(45deg); }
+.body { padding: 0 18px 18px; border-top: 1px solid var(--line); }
+.body > p { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.body > p:first-child { padding-top: 16px; }
+.body :global(.theme-code-block) { overflow: hidden; border-radius: 10px; background: var(--soft); }
+.body :global(.theme-code-block pre) { overflow-x: auto; background: var(--soft) !important; font-size: 12px; line-height: 1.7; }
+.body :global([class*='codeBlockLines']) { padding: 14px; white-space: pre; overflow-wrap: normal; word-break: normal; }
+.body .note { margin: 14px 0 0; padding: 10px 12px; border-left: 3px solid var(--blue); background: var(--soft); font-size: 12px; }
+@media (max-width: 700px) { .intro { display: block; } .intro a { display: inline-block; margin-top: 12px; } }

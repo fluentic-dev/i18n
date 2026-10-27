@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="top" x1="270" y1="195" x2="815" y2="340" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00CCE9"/><stop offset="1" stop-color="#285CFF"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="320" y1="330" x2="300" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#001782"/><stop offset="1" stop-color="#0069EB"/>
+    </linearGradient>
+    <linearGradient id="stem" x1="380" y1="550" x2="260" y2="860" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#241086"/><stop offset="1" stop-color="#8734FC"/>
+    </linearGradient>
+    <linearGradient id="middle" x1="250" y1="455" x2="730" y2="535" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#129BFF"/><stop offset=".5" stop-color="#2865FF"/><stop offset="1" stop-color="#7033FF"/>
+    </linearGradient>
+    <linearGradient id="translation" x1="34" y1="40" x2="54" y2="53" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#168FFF"/><stop offset="1" stop-color="#8034F5"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="white" stroke="#DFE4F2" stroke-width="1.5"/>
+  <rect x="6" y="6" width="52" height="52" rx="9" fill="#F8F8FB"/>
+  <!-- Fluentic's original swept arms, folded spine, and tapered lower stem. -->
+  <g transform="translate(0 1) scale(.063)">
+    <path d="M258 340C266 225 355 141 465 141H868C878 141 884 149 881 160C862 249 789 312 699 312H464C438 312 412 317 387 326L361 411C303 446 258 509 235 587Z" fill="url(#fold)"/>
+    <path d="M235 587C278 565 370 549 450 554L410 687C382 790 312 865 224 877C212 879 205 872 207 859Z" fill="url(#stem)"/>
+    <path d="M258 340C266 225 355 141 465 141H868C878 141 884 149 881 160C862 249 789 312 699 312H464C374 312 286 371 247 465Z" fill="url(#top)"/>
+    <path d="M235 587C250 483 345 384 463 384H750C761 384 767 392 764 403C744 489 670 555 586 555H450C345 555 254 628 221 728Z" fill="url(#middle)"/>
+  </g>
+  <g stroke="url(#translation)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M34 52L37.5 42L41 52M35.2 48.5H39.8"/>
+    <path d="M48 40V42M43.5 43H53M46 43C46.8 47.6 49.5 50.6 53 52M51 43C50.2 47.6 47.5 50.6 44 52"/>
+  </g>
+</svg>
