@@ -1,0 +1,27 @@
+{
+  "name": "@example/i18n",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.mjs",
+    "i18n": "fluentic-i18n --config i18n.config.ts"
+  },
+  "dependencies": {
+    "@fluentic/i18n": "workspace:*",
+    "@vitejs/plugin-react": "^6.0.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.16",
+    "@fluentic/i18n-web": "workspace:*"
+  },
+  "devDependencies": {
+    "@fluentic/i18n-cli": "workspace:*",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3"
+  }
+}

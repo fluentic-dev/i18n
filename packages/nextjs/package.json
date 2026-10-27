@@ -1,0 +1,74 @@
+{
+  "name": "@fluentic/i18n-nextjs",
+  "version": "0.0.0",
+  "description": "Next.js App Router and React Server Component bindings for Fluentic i18n.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fluentic-dev/i18n.git",
+    "directory": "packages/nextjs"
+  },
+  "homepage": "https://fluenticstack.com/i18n/",
+  "bugs": {
+    "url": "https://github.com/fluentic-dev/i18n/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "./dist/server.mjs"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/client.ts",
+      "react-server": "./dist/server.mjs",
+      "default": "./dist/client.mjs"
+    },
+    "./server": {
+      "types": "./src/server.ts",
+      "react-server": "./dist/server.mjs",
+      "node": "./dist/server.mjs",
+      "default": "./dist/unavailable.mjs"
+    },
+    "./config": {
+      "types": "./src/config.ts",
+      "default": "./dist/config.mjs"
+    },
+    "./request": {
+      "types": "./src/request.ts",
+      "default": "./dist/request.mjs"
+    },
+    "./plugin": {
+      "types": "./src/plugin.ts",
+      "default": "./dist/plugin.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "server-only": "^0.0.1"
+  },
+  "peerDependencies": {
+    "@fluentic/i18n": "workspace:*",
+    "react": ">=19",
+    "next": ">=15"
+  },
+  "devDependencies": {
+    "@fluentic/i18n": "workspace:*",
+    "react": "^19.2.0",
+    "@types/react": "^19.2.14",
+    "@types/node": "^22.15.0",
+    "next": "^16.0.0",
+    "tsdown": "^0.22.1",
+    "typescript": "^5.9.3"
+  }
+}

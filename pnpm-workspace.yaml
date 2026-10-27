@@ -1,0 +1,7 @@
+packages:
+  - "packages/*"
+  - "examples/*"
+  - "docs"
+allowBuilds:
+  dprint: true
+  esbuild: true

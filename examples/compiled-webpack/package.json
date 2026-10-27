@@ -1,0 +1,19 @@
+{
+  "name": "@example/compiled-webpack",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node dist/main.mjs"
+  },
+  "dependencies": {
+    "@fluentic/i18n": "workspace:*",
+    "@fluentic/i18n-web": "workspace:*",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "webpack": "^5.0.0",
+    "webpack-cli": "^6.0.0",
+    "@fluentic/i18n-cli": "workspace:*"
+  }
+}

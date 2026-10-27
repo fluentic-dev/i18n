@@ -1,0 +1,40 @@
+{
+  "name": "fluentic-i18n-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "license": "MIT",
+  "repository": "github:fluentic-dev/i18n",
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm build:packages && pnpm build:examples && pnpm --filter @docs/app build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "format": "DPRINT_CACHE_DIR=$PWD/.dprint-cache dprint fmt",
+    "format:check": "DPRINT_CACHE_DIR=$PWD/.dprint-cache dprint check",
+    "test:docs-workflow": "pnpm --filter @fluentic/i18n build && pnpm --filter @fluentic/i18n-cli build && node --test tests/docs-workflow.test.mjs",
+    "test:examples": "pnpm --filter @example/i18n test",
+    "build:packages": "pnpm --filter './packages/*' -r build",
+    "build:examples": "pnpm --filter '@example/*' -r build",
+    "test:bundles": "node scripts/measure-bundles.mjs",
+    "test": "pnpm build:packages && pnpm --filter @fluentic/i18n test && pnpm test:examples && node --test tests/*.test.mjs && pnpm test:bundles",
+    "test:next": "node scripts/test-next.mjs"
+  },
+  "devDependencies": {
+    "dprint": "^0.54.0",
+    "tsdown": "^0.22.1",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "serialize-javascript@<=7.0.2": "7.0.3",
+      "tinypool@<=2.1.0": "2.1.2",
+      "zod@<4.6.6": "4.6.6"
+    },
+    "onlyBuiltDependencies": [
+      "dprint",
+      "esbuild"
+    ]
+  }
+}
