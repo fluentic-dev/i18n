@@ -1,4 +1,3 @@
-'use client';
 export type { I18nSnapshot, ManagedI18n } from '@fluentic/i18n/adapter';
 export {
   createI18nManager,

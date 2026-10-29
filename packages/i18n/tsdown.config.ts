@@ -21,7 +21,17 @@ export default defineConfig([{
   clean: true,
   sourcemap: true,
   platform: 'neutral',
-  deps: { neverBundle: ['intl-messageformat', 'react'] },
+  deps: {
+    neverBundle: [
+      'intl-messageformat',
+      'react',
+      'node:crypto',
+      'node:fs',
+      'node:fs/promises',
+      'node:module',
+      'node:path',
+    ],
+  },
 }, {
   entry: { babel: 'src/plugin/babel.ts' },
   format: ['cjs'],

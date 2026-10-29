@@ -4,5 +4,6 @@ export default defineConfig({
   format: ['esm'],
   dts: true,
   sourcemap: true,
+  banner: ({ fileName }) => fileName === 'client.mjs' ? "'use client';" : undefined,
   deps: { neverBundle: ['@fluentic/i18n-nextjs/request', 'server-only'] },
 });
