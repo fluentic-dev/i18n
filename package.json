@@ -22,7 +22,7 @@
     "test:next": "node scripts/test-next.mjs",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm build:packages && changeset publish --tag beta"
+    "release": "pnpm build:packages && changeset publish && node scripts/sync-prerelease-tag.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.1",
