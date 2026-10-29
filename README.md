@@ -195,7 +195,7 @@ export default defineConfig({
 });
 ```
 
-Google Translate and DeepL are built in. A custom translator is defined with `defineTranslator({ translate, batch, tag })`, which lets the CLI batch requests and handle inline tags according to provider capabilities.
+Google Translate and DeepL are built in. A custom translator is defined with `defineTranslator({ support, translate, batch, tag })`, which lets the CLI choose the first supported provider from an ordered array, batch requests, and handle inline tags according to provider capabilities.
 
 ## Ahead-of-time compilation
 

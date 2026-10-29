@@ -9,7 +9,7 @@ import { IcuSection } from '../components/home/IcuSection';
 import { PhilosophySection } from '../components/home/PhilosophySection';
 import { WorkbenchSection } from '../components/home/WorkbenchSection';
 import { WorkflowSection } from '../components/home/WorkflowSection';
-import styles from './index.redesign.module.css';
+import styles from './index.module.css';
 
 export default function Home() {
   return (

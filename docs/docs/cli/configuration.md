@@ -85,6 +85,7 @@ files: {
 | Option              | Default / behavior                                                       |
 | ------------------- | ------------------------------------------------------------------------ |
 | `compiled`          | `false`; emit compact merged catalogs and enable compiler adapters       |
+| `catalogFormat`     | `'jsonl'`; select `jsonl`, `json`, `cjs`, `mjs`, or an array of formats  |
 | `root`              | `'.'`                                                                    |
 | `output`            | `'i18n/data'`                                                            |
 | `languages`         | Required; source ID and target IDs                                       |
@@ -94,7 +95,7 @@ files: {
 | `dirs.translations` | `'translations'`                                                         |
 | `dirs.exports`      | `'exports'`                                                              |
 | `hashes`            | Hash output is enabled unless set to `false`                             |
-| `translator`        | Optional callback; no service is selected by default                     |
+| `translator`        | Optional translator or ordered fallback array                            |
 | `env`               | `i18n.env` + `i18n.env.local` beside the config; set one path or `false` |
 | `convert`           | Optional array of named import/export converters                         |
 | `meta`              | Accepted by the config type; currently not applied to extracted records  |
@@ -110,3 +111,17 @@ Import the CLI only in tooling, configuration, or build scripts. Load the result
 Continue with [translator callbacks](./translators), [converters](./formats), or [loading catalogs in your app](../runtime/manager).
 
 See [compiler and bundler integration](../runtime/compilation) for `compiled: true`.
+
+## Catalog output formats
+
+`catalogFormat` selects the generated runtime files. It accepts one format or an array:
+
+```ts
+catalogFormat: ['jsonl', 'json'],
+```
+
+The default is `'jsonl'`. JSON is directly importable by Metro; CJS and MJS export the same rows as JavaScript modules. JSONL has one compact row per line. JSON and module outputs use one indented row per line, and JSON ends in `null` so each preceding row keeps its trailing comma. The manager ignores this final sentinel. Entries are ordered by message identity to reduce unrelated changes. Git can still report conflicts when branches change or insert at the same position.
+
+On `merge`, `update`, or `conflict`, generated `merged.jsonl`, `merged.json`, `merged.cjs`, and `merged.mjs` files not listed in `catalogFormat` are removed for configured target languages. Authoring files are not removed.
+
+After resolving conflicts in `manual.jsonl` and `auto.jsonl`, run `fluentic-i18n conflict` to extract messages and regenerate the configured catalog formats. The command refuses to overwrite conflicted or invalid authoring files. Review the generated changes and stage resolved files in Git.

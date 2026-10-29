@@ -17,6 +17,6 @@ t.text(greeting, { name: 'Ada' });
 
 `t.msg` is inert and safe at module scope. `t.text` returns a string; `t.jsx` returns JSX synchronously. Initialize before rendering. Persistence is opt-in.
 
-The default runtime uses cached `intl-messageformat`. Set `compiled: true` in your CLI configuration and add `@fluentic/i18n/plugin/{vite,rollup,esbuild,webpack,babel}` to compile messages. The plugin rewrites universal imports to `/compiled`, which interprets compact messages without an ICU parser. Auto/manual files stay unchanged; merged rows become `[hash, compactMessage]`.
+The default runtime uses cached `intl-messageformat`. Set `compiled: true` in your CLI configuration and add `@fluentic/i18n/plugin/{vite,rollup,esbuild,webpack,babel}` to compile messages. The plugin rewrites universal imports to `/compiled`, which interprets compact messages without an ICU parser. Auto/manual files stay unchanged; compiled merged catalogs start with `{"compiled":true}` followed by `[hash, compactMessage]` rows.
 
 See [platforms](../../docs/docs/runtime/platforms.md), [compiler](../../docs/docs/runtime/compilation.md), [API](../../docs/docs/api.md), and the projects under `examples/`.

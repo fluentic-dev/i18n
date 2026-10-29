@@ -21,8 +21,10 @@ Keep the React and React Native versions supported by your Expo SDK or native ap
 
 ```ts title="i18n.config.ts"
 import { defineConfig } from '@fluentic/i18n-cli';
+
 export default defineConfig({
   compiled: true,
+  catalogFormat: 'json',
   languages: { source: 'en', targets: ['fr'] },
   files: { includes: ['App.tsx', 'src/**/*.{ts,tsx}'] },
 });
@@ -43,30 +45,21 @@ Keep source imports as `@fluentic/i18n`; the plugin rewrites them to `/compiled`
 
 ## Prepare catalogs for Metro
 
-Follow the [CLI workflow](../cli/overview) to extract, translate, and merge. With `compiled: true`, merged files contain compact rows. The Babel plugin transforms source code; it does not add a Metro loader for `.jsonl` assets.
+Follow the [CLI workflow](../cli/overview) to extract, translate, and merge. The CLI now generates the runtime-ready format selected by [`catalogFormat`](../cli/configuration#catalog-output-formats), so no separate script is needed to convert `merged.jsonl` into a JavaScript module. Choose `'json'`, `'cjs'`, or `'mjs'` to generate `merged.json`, `merged.cjs`, or `merged.mjs`; use an array when you need more than one output. JSON is the simplest option for Metro and can be imported directly:
 
-You can fetch JSONL from your own service, or convert the merged JSONL into a bundled JavaScript module during the build:
-
-```js title="scripts/native-catalogs.mjs"
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-const text = await readFile('i18n/data/translations/fr/merged.jsonl', 'utf8');
-const rows = text.split(/\r?\n/).filter((line) => line.trim()).map((line) => JSON.parse(line));
-await mkdir('src/generated', { recursive: true });
-await writeFile('src/generated/fr.js', `export default ${JSON.stringify(rows)};\n`);
+```ts title="i18n.config.ts"
+catalogFormat: 'json',
 ```
 
-Run this after `merge` and before Metro builds. This only packages the already-compiled rows; it does not parse ICU messages. Regenerate the module whenever translations change. For TypeScript apps, add a declaration alongside it:
+The JSON catalog contains compact rows and a final `null` sentinel. The manager handles the sentinel internally. CJS and MJS catalogs export the same rows directly and do not include the sentinel.
 
-```ts title="src/generated/fr.d.ts"
-declare const rows: import('@fluentic/i18n/adapter').TranslationData;
-export default rows;
-```
+Run `merge` after editing translations and before starting or rebuilding the app. You can request multiple outputs, for example `catalogFormat: ['jsonl', 'json']`. For large catalogs, an app can instead provide an asynchronous loader that fetches a JSONL catalog or reads a bundled asset.
 
 ## Initialize before rendering
 
 ```ts title="src/i18n.ts"
 import { I18nManager } from '@fluentic/i18n-rn';
-import french from './generated/fr';
+import french from '../i18n/data/translations/fr/merged.json';
 
 I18nManager.configure({ languageId: 'en' });
 I18nManager.setTranslationLoader(({ languageId }) => languageId === 'fr' ? french : []);
@@ -123,7 +116,7 @@ export default function App() {
 }
 ```
 
-`t.msg()` is safe outside components. Put textual `t.jsx()` output inside a native `Text` element. `t.jsx()` subscribes automatically; `I18nState.use()` also rerenders the button's synchronous `t.text()` title. Native rich tags should return native elements, such as `t.tag(<Text style={{fontWeight: 'bold'}} />)`.
+`t.msg()` is safe outside components. Put textual `t.jsx()` output inside a native `Text` element. `t.jsx()` subscribes automatically; `I18nState.use()` also rerenders the button's synchronous `t.text()` title. Use `{break}` for an explicit line break: `t.text()` returns a newline, web JSX renders `<br>`, and native JSX renders a newline inside `Text`. The adapter configures this for both the default runtime and native providers. `{break}` is reserved and does not need to be passed in `params`. Literal newlines and surrounding whitespace are preserved. Native rich tags should return native elements, such as `t.tag(<Text style={{fontWeight: 'bold'}} />)`.
 
 ## Persist the selected language
 
@@ -145,6 +138,6 @@ pnpm --filter @example/rn build
 pnpm --filter @example/rn dev
 ```
 
-The Expo example includes the Babel configuration, an inert message descriptor, a compiled French catalog, and a language switcher. Its workspace Metro configuration resolves React to the app's copy; an ordinary single-app project can keep its existing Metro configuration.
+The Expo example imports a CLI-generated JSON catalog, uses `{break}` in a translated message, and includes a language switcher. Its workspace Metro configuration resolves React to the app's copy; an ordinary single-app project can keep its existing Metro configuration.
 
 See also [platform adapters](./platforms), [loading and fallbacks](./loading), and [compiler setup](./compilation).

@@ -1,7 +1,7 @@
 import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
 import { useState } from 'react';
-import styles from '../../pages/index.redesign.module.css';
+import styles from '../../pages/index.module.css';
 import { heroExamples, locales } from './data';
 import { CodeBlock, InstallCommand } from './shared';
 

@@ -32,9 +32,11 @@ cache/extracted.json
                     translations/fr/merged.jsonl
 ```
 
-`merged.jsonl` is the file your application loads. `manual.jsonl` and `auto.jsonl` are the files the CLI uses to produce it.
+`merged.jsonl` is the default file your application loads. Set [`catalogFormat`](./configuration#catalog-output-formats) to generate JSON, CJS, or MJS catalogs instead or alongside it. `manual.jsonl` and `auto.jsonl` are the files the CLI uses to produce them.
 
 These files use JSONL deliberately: one complete message record per line, with a stable message ID. When two branches add or update different messages, Git can usually merge those lines independently instead of treating the whole catalog as one conflicting document. If the same message is changed in two branches, the conflict still needs review; the line-oriented format simply keeps unrelated work out of that conflict.
+
+After resolving conflicts in the authoring JSONL files, run `pnpm i18n conflict` to regenerate all configured catalog formats. The command stops if an authoring file still has conflict markers or invalid records. Stage the resolved files in Git after reviewing them.
 
 ## 1. Add a config file
 

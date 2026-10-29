@@ -1,6 +1,6 @@
 import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
-import styles from '../../pages/index.redesign.module.css';
+import styles from '../../pages/index.module.css';
 import HomeIcon from '../HomeIcon';
 import { features } from './data';
 import { CodeBlock, InlineCode } from './shared';

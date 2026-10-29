@@ -1,6 +1,6 @@
 import CodeBlock from '@theme/CodeBlock';
 import { useEffect, useState } from 'react';
-import styles from '../../pages/index.redesign.module.css';
+import styles from '../../pages/index.module.css';
 
 export function InlineCode({ text }: { text: string; }) {
   return (

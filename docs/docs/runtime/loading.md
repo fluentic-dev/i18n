@@ -5,7 +5,7 @@ sidebar_label: Translation loaders
 
 # Translation loaders
 
-A loader receives `{languageId}` and returns JSONL text, `{jsonl}`, authoring records, or compiled `[hash, compactMessage]` rows. It may return a promise.
+A loader receives `{languageId}` and returns JSONL text, `{jsonl}`, or an array of catalog rows. It may return a promise.
 
 ```ts
 import { defineTranslationLoader } from '@fluentic/i18n';
@@ -17,7 +17,7 @@ I18nManager.setTranslationLoader(defineTranslationLoader({
 }));
 ```
 
-The compiler bundler adapters support `.jsonl` modules; Vite also supports its own `?raw` imports. Module defaults are unwrapped. Missing map entries return an empty catalog. A plain object such as `{hello: 'Bonjour'}` is not a catalog.
+The compiler bundler adapters load `.jsonl` modules as strings; Vite also supports its own `?raw` imports. Module defaults are unwrapped. Missing map entries return an empty catalog. A plain object such as `{hello: 'Bonjour'}` is not a catalog.
 
 ## Caching and errors
 
@@ -29,10 +29,10 @@ A switch commits language and ready state only after all required catalogs load.
 
 For `fr-CA`, the manager loads the selected locale, base `fr`, and the configured fallback language. Lookup follows that order and then uses the source message. The loader should return an empty catalog for a supported source language that has no translation file.
 
-Contextual messages try their context/source key and then the unscoped source key in dynamic mode. Compiled messages use their exact context-sensitive hash; they fall back to the compiled source when that hash is absent. They do not reconstruct unscoped source keys at runtime.
+Uncompiled catalogs try the context/source key and then the unscoped source key. Compiled catalogs use the exact context-sensitive hash and fall back to the source message when it is absent. The regular runtime computes that hash when looking up messages in compiled catalogs, so compiled catalogs also work without the source plugin.
 
 ## Format validation
 
-Dynamic records use `id` or source/context identity plus a string translation. Empty authoring translations are treated as missing. Compiled rows are structurally validated once at load time; plain literals are strings and other messages contain compact instructions. Keep compiled catalogs and runtime format versions together when deploying.
+Uncompiled JSONL contains `[source, translation]` or `[context, source, translation]` on each line. Compiled JSONL starts with `{"compiled":true}`, followed by `[hash, compactMessage]` rows. The same rows can be supplied as an array, including the header for compiled catalogs. JSON catalogs end with a `null` sentinel, which the manager ignores. Empty authoring translations are omitted. Compiled rows are structurally validated once at load time; plain literals are strings and other messages contain compact instructions. The compiled runtime rejects uncompiled translations if a lookup returns one. Keep compiled catalogs and runtime versions together when deploying.
 
 See [manager setup](./manager), [compilation](./compilation), and [Next.js](./nextjs).

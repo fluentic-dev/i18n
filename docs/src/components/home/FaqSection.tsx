@@ -1,5 +1,5 @@
 import Heading from '@theme/Heading';
-import styles from '../../pages/index.redesign.module.css';
+import styles from '../../pages/index.module.css';
 import { faqs } from './data';
 import { InlineCode } from './shared';
 

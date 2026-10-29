@@ -1,6 +1,6 @@
 import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
-import styles from '../../pages/index.redesign.module.css';
+import styles from '../../pages/index.module.css';
 import { icuExamples } from './data';
 import icuStyles from './icu.module.css';
 import { CodeBlock } from './shared';

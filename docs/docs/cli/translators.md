@@ -7,6 +7,19 @@ sidebar_label: Translation services
 
 Configure a `translator` with `defineTranslator` to integrate a translation provider or internal service. The CLI passes untranslated records to the callback and merges the returned translations by message ID. The callback receives `env(name)`, which reads `process.env` first, then `i18n.env.local`, then `i18n.env`.
 
+Pass an ordered array when a secondary service should cover language pairs unsupported by the preferred provider. The CLI calls each optional `support` predicate and uses the first matching translator:
+
+```ts
+import { createDeepLTranslator, createGoogleTranslator, defineConfig } from '@fluentic/i18n-cli';
+
+export default defineConfig({
+  languages: { source: 'en', targets: ['fr', 'ga'] },
+  translator: [createDeepLTranslator(), createGoogleTranslator()],
+});
+```
+
+In this example DeepL handles its supported pairs and Google is the fallback. Provider order is significant.
+
 Automatic translation is optional. Omit `translator` to use only manual translations; see the [manual workflow](./overview#3-understand-the-translation-files).
 
 ## Implement a translator callback
@@ -15,6 +28,8 @@ Automatic translation is optional. Omit `translator` to use only manual translat
 import { defineTranslator } from '@fluentic/i18n-cli';
 
 export const translate = defineTranslator({
+  support: ({ sourceLanguageId, targetLanguageId }) =>
+    sourceLanguageId === 'en' && ['fr', 'de'].includes(targetLanguageId),
   batch: 50,
   tag: false,
   translate: async ({
@@ -49,6 +64,8 @@ export const translate = defineTranslator({
 });
 ```
 
+`support` may return a boolean or a promise. It receives the same request data as `translate`, including `sourceLanguageId`, `targetLanguageId`, `items`, and `env`. If it is omitted, the translator accepts every pair.
+
 Wire it into `defineConfig({ languages: …, translator: translate })`. For common providers, use `createGoogleTranslator()` or `createDeepLTranslator()` from `@fluentic/i18n-cli`.
 
 ```ts
@@ -74,8 +91,9 @@ For each target language, the CLI calls the translator with messages that have n
 
 ## Batching and tags
 
-`defineTranslator` accepts two provider capability options:
+`defineTranslator` accepts three provider capability options:
 
+- `support`: whether the provider accepts a language pair. It defaults to accepting every pair.
 - `batch`: maximum number of items per call. It defaults to `50`. Set it to `false` to call the provider once per item.
 - `tag`: whether the provider accepts Fluentic's inline tags such as `<link>…</link>`. It defaults to `false`.
 

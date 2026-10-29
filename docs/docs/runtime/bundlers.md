@@ -21,7 +21,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({ plugins: [fluentic(), react()] });
 ```
 
-The plugin runs before other source transforms. It loads direct `.jsonl` imports as arrays; Vite's `?raw` imports continue to return text. See [the complete React web guide](./react-web).
+The plugin runs before other source transforms. It loads direct `.jsonl` imports as text; Vite's `?raw` imports continue to return text. See [the complete React web guide](./react-web).
 
 ## Rollup
 

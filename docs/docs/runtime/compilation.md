@@ -11,7 +11,7 @@ Compilation is optional. The default runtime accepts ICU strings and caches `Int
 
 Keep `t.msg()`, `t.text()`, and `t.jsx()` in source. The plugin compiles static ICU messages at build time, removes static context chains, and rewrites the core import to `/compiled`. The shipped runtime formats compact instructions with native `Intl` APIs. There is no runtime ICU parsing, and the parser/compiler packages stay out of the application bundle.
 
-The compiled message runtime measures about **2.2 KB gzip**. A typical React setup including the manager, translation loading, language switching, state observation, and JSX rendering measures about **3.9 KB gzip**. These sizes exclude React, catalogs, and the compiled fallback data emitted for each message. They are not claims about total application size or benchmark parity with another library.
+The compiled message runtime measures about **2.3 KB gzip**. A typical React setup including the manager, translation loading, language switching, state observation, and JSX rendering measures about **4.4 KB gzip**. These sizes exclude React, catalogs, and the compiled fallback data emitted for each message. They are not claims about total application size or benchmark parity with another library.
 
 Compilation is optional. The normal runtime remains useful for apps that want no build integration or need dynamic ICU source strings. Both paths keep the same authoring API and platform adapters. See the [React web](./react-web), [React Native / Expo](./react-native), and [Next.js](./nextjs) setup guides, or [configuration examples for each bundler](./bundlers).
 
@@ -26,7 +26,7 @@ export default defineConfig({
 });
 ```
 
-Run the normal CLI `update`/`merge` workflow. Auto and manual files remain readable records. Each compiled `merged.jsonl` line is `[hash, compactMessage]`. Plain messages use strings; structured messages use compact instructions. An adjacent `.meta.json` records format version 1. Deploy catalogs with the matching runtime; if fetching external catalogs, check the metadata version before passing the data to the loader. Structural validation occurs once at load time.
+Run the normal CLI `update`/`merge` workflow. Auto and manual files remain readable records. Compiled `merged.jsonl` starts with `{"compiled":true}`; each following line is `[hash, compactMessage]`. Plain messages use strings; structured messages use compact instructions. Deploy catalogs with the matching runtime. Structural validation occurs once at load time.
 
 The hash is the first 96 bits of SHA-256 over the source identity: `context + '\0' + source`, or just source without context. It does not depend on locale or translation. Catalog compilation checks collisions across its records. Editing the source or context changes its identity. Empty authoring translations are omitted; an explicit compiled row with an empty string renders empty text.
 
@@ -51,11 +51,11 @@ import { defineConfig } from 'vite';
 export default defineConfig({ plugins: [fluentic(), react()] });
 ```
 
-Adapters read `i18n.config.ts`, `.js`, or `.mjs` in the working directory. Pass `{config: './path/to/config.ts'}` for another location. `{compiled: true}` is also available for isolated build fixtures. The CLI and plugin must agree on compilation mode. After changing the mode, regenerate catalogs and restart the development server.
+Adapters read `i18n.config.ts`, `.js`, or `.mjs` in the working directory. Pass `{config: './path/to/config.ts'}` for another location. `{compiled: true}` is also available for isolated build fixtures. The regular runtime can load compiled catalogs even without the source plugin. The compiled runtime requires compiled source messages and compiled translations. After changing the mode, regenerate catalogs and restart the development server.
 
 The standalone compiler parses its own JS/TS/JSX/TSX source, resolves bindings, rewrites calls and emits code plus source maps. Vite runs it before other transforms; Rollup users should put it before TS/JSX transpilers. The Babel adapter owns parsing through `parserOverride`, and reparses original source when a host supplies an AST. It cannot share parsing of a Fluentic source file with another parser override. Keep ordinary React/TypeScript presets.
 
-Vite, Rollup, esbuild and webpack adapters load `.jsonl` imports as arrays. Babel only transforms source: use the host's asset loader or provide parsed catalogs/JSONL strings. `?raw` remains Vite's own text-loading mechanism.
+Vite, Rollup, esbuild and webpack adapters load `.jsonl` imports as text. Babel only transforms source: use the host's asset loader or provide parsed catalogs/JSONL strings. `?raw` remains Vite's own text-loading mechanism.
 
 ## Same-file tracing
 
@@ -92,18 +92,18 @@ The workspace's `pnpm test:bundles` bundles the packaged ESM entrypoints with es
 
 | Export set                                         | Minified bytes | Gzip bytes |
 | -------------------------------------------------- | -------------: | ---------: |
-| Dynamic `t`                                        |         46,111 |     13,974 |
-| Compiled `t`                                       |          5,325 |      2,190 |
-| Compiled `t` + manager + state (typical React app) |         10,339 |      3,887 |
-| Dynamic `t` + manager + state (typical React app)  |         51,156 |     15,763 |
-| Compiled React app + registry + localStorage       |         10,946 |      4,072 |
-| Compiled `t` + all Next.js client exports          |         11,404 |      4,198 |
-| Compiled `t` + all RN exports + storage wrapper    |         11,962 |      4,390 |
-| Compiled `t` + all web adapter exports             |         11,732 |      4,307 |
-| All web adapter exports alone                      |          6,926 |      2,626 |
-| Manager factory alone                              |          4,847 |      1,891 |
+| Dynamic `t`                                        |         53,422 |     17,210 |
+| Compiled `t`                                       |          5,617 |      2,273 |
+| Compiled `t` + manager + state (typical React app) |         12,002 |      4,353 |
+| Dynamic `t` + manager + state (typical React app)  |         59,835 |     19,353 |
+| Compiled React app + registry + localStorage       |         12,609 |      4,545 |
+| Compiled `t` + all Next.js client exports          |         13,069 |      4,668 |
+| Compiled `t` + all RN exports + storage wrapper    |         13,627 |      4,857 |
+| Compiled `t` + all web adapter exports             |         13,397 |      4,773 |
+| All web adapter exports alone                      |          8,288 |      3,028 |
+| Manager factory alone                              |          6,198 |      2,294 |
 | Registry alone                                     |            566 |        321 |
 
-Measured on 2026-10-27. The bundle check asserts that compiled/runtime-management outputs contain no ICU parser, `intl-messageformat`, or Babel code. Compiler tooling is loaded only by build entrypoints. Importing only the registry from the normal core entrypoint also tree-shakes away the dynamic formatter.
+Measured on 2026-10-28. The bundle check asserts that compiled/runtime-management outputs contain no ICU parser, `intl-messageformat`, Babel code, or the dynamic runtime’s hashing dependency. Compiler tooling is loaded only by build entrypoints. Importing only the registry from the normal core entrypoint also tree-shakes away the dynamic formatter.
 
 The compiled `t` measurement retains the whole API, including descriptor handling, parameter validation, rich tags, format caching, runtime lookup, and the compact interpreter. It does not include catalog loading or React itself. The typical React measurement adds `I18nManager` and `I18nState` from the web adapter, including automatic JSX subscriptions. The RN figure excludes AsyncStorage; the Next.js figure covers client code only.

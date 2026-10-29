@@ -53,8 +53,8 @@ Direct `.jsonl` imports are handled by the Next plugin. Add a TypeScript declara
 
 ```ts title="catalogs.d.ts"
 declare module '*.jsonl' {
-  const catalog: import('@fluentic/i18n/adapter').TranslationData;
-  export default catalog;
+  const content: string;
+  export default content;
 }
 ```
 
