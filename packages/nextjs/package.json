@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n-nextjs",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.1",
   "description": "Next.js App Router and React Server Component bindings for Fluentic i18n.",
   "license": "MIT",
   "type": "module",
@@ -20,6 +20,7 @@
     "dist",
     "src",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "sideEffects": [

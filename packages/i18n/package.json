@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.1",
   "description": "Framework-independent internationalization primitives for Fluentic applications.",
   "license": "MIT",
   "repository": {
@@ -86,6 +86,7 @@
     "dist",
     "src",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "dist-cjs"
   ],
@@ -104,7 +105,8 @@
     "@babel/generator": "^7.28.3",
     "@formatjs/icu-messageformat-parser": "2.11.4",
     "jiti": "^2.7.0",
-    "@jridgewell/remapping": "^2.3.5"
+    "@jridgewell/remapping": "^2.3.5",
+    "@noble/hashes": "^1.8.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",

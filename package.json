@@ -19,9 +19,13 @@
     "build:examples": "pnpm --filter '@example/*' -r build",
     "test:bundles": "node scripts/measure-bundles.mjs",
     "test": "pnpm build:packages && pnpm --filter @fluentic/i18n test && pnpm test:examples && node --test tests/*.test.mjs && pnpm test:bundles",
-    "test:next": "node scripts/test-next.mjs"
+    "test:next": "node scripts/test-next.mjs",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build:packages && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.1",
     "dprint": "^0.54.0",
     "tsdown": "^0.22.1",
     "typescript": "^5.9.3"
