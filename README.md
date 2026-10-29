@@ -11,7 +11,7 @@
 </div>
 
 > [!IMPORTANT]
-> Fluentic i18n is currently **pre-release**. The source, examples, and documentation are public, but the `@fluentic/*` npm packages have not been published yet. Expect API changes while the first release is prepared.
+> **Fluentic i18n v0.1.0-beta.1 is now available on npm.** This is the first public beta, so APIs may change as we incorporate production feedback before the stable release. Install the prerelease with the `beta` tag and report issues on [GitHub](https://github.com/fluentic-dev/i18n/issues).
 
 ## Why Fluentic?
 
@@ -35,12 +35,12 @@ Automatic translation is the fast path, not a lock-in. You can review everything
 
 ## Install
 
-The following commands apply after the first npm release. To evaluate the project today, clone this repository and use the workspace development instructions below.
-
 ```sh
-pnpm add @fluentic/i18n @fluentic/i18n-web
-pnpm add -D @fluentic/i18n-cli
+pnpm add @fluentic/i18n@beta @fluentic/i18n-web@beta
+pnpm add -D @fluentic/i18n-cli@beta
 ```
+
+Choose the platform package for your application: [`@fluentic/i18n-web`](https://www.npmjs.com/package/@fluentic/i18n-web), [`@fluentic/i18n-nextjs`](https://www.npmjs.com/package/@fluentic/i18n-nextjs), or [`@fluentic/i18n-rn`](https://www.npmjs.com/package/@fluentic/i18n-rn).
 
 ## Your first message
 
@@ -205,15 +205,15 @@ See the [compiler guide](docs/docs/runtime/compilation.md), [platform adapters](
 
 ## Packages
 
-| Package                 | Purpose                                                           |
-| ----------------------- | ----------------------------------------------------------------- |
-| @fluentic/i18n          | Universal t, descriptors, I18nRegistry, and dynamic formatting    |
-| @fluentic/i18n/compiled | Compact message runtime selected by compiler plugins              |
-| @fluentic/i18n-web      | React web adapter, I18nManager and I18nState                      |
-| @fluentic/i18n/core     | Framework-neutral message and formatting primitives               |
-| @fluentic/i18n-cli      | Extraction, catalogs, translation runners, converters, and hashes |
-| @fluentic/i18n-rn       | React Native runtime bindings                                     |
-| @fluentic/i18n-nextjs   | Next.js and RSC runtime bindings                                  |
+| Package                                                                        | Purpose                                                           |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| [`@fluentic/i18n`](https://www.npmjs.com/package/@fluentic/i18n)               | Universal t, descriptors, I18nRegistry, and dynamic formatting    |
+| `@fluentic/i18n/compiled`                                                      | Compact message runtime selected by compiler plugins              |
+| [`@fluentic/i18n-web`](https://www.npmjs.com/package/@fluentic/i18n-web)       | React web adapter, I18nManager and I18nState                      |
+| `@fluentic/i18n/core`                                                          | Framework-neutral message and formatting primitives               |
+| [`@fluentic/i18n-cli`](https://www.npmjs.com/package/@fluentic/i18n-cli)       | Extraction, catalogs, translation runners, converters, and hashes |
+| [`@fluentic/i18n-rn`](https://www.npmjs.com/package/@fluentic/i18n-rn)         | React Native runtime bindings                                     |
+| [`@fluentic/i18n-nextjs`](https://www.npmjs.com/package/@fluentic/i18n-nextjs) | Next.js and RSC runtime bindings                                  |
 
 The platform packages are separate so each environment can provide its own loading, state, and JSX behavior without pulling browser-specific code into another bundle.
 
