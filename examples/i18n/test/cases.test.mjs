@@ -4,21 +4,26 @@ import { collectMessages } from '@fluentic/i18n/compiler';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { catalogs, loadExampleCatalog } from '../src/catalogs.ts';
 
 const plural = '{count, plural, =0 {No members} one {# member} other {# members}}';
 const projectStatus = '{status, select, on_track {On track} at_risk {At risk} done {Complete} other {Unknown}}';
+const frenchJsonl = await readFile(new URL('../i18n/translations/fr/merged.jsonl', import.meta.url), 'utf8');
+const frenchRecords = frenchJsonl.trim().split('\n').map(JSON.parse);
 
 async function start(languageId) {
   I18nManager.setStorage(null);
   I18nManager.configure({ languageId, fallbackLanguageId: 'en' });
-  I18nManager.setTranslationLoader(loadExampleCatalog);
+  I18nManager.setTranslationLoader(({ languageId: requested }) => requested === 'fr' ? frenchJsonl : []);
   await I18nManager.init();
 }
 
 test('the casebook source remains statically extractable by the CLI', async () => {
   const source = await readFile(new URL('../src/screen.tsx', import.meta.url), 'utf8');
+  const loader = await readFile(new URL('../src/translations.ts', import.meta.url), 'utf8');
   const messages = collectMessages(source, 'screen.tsx');
+  assert.match(source, /I18nState\.use\(\)/, 'plain text renders must subscribe to completed language changes');
+  assert.match(source, /isLoading/, 'the language control must expose asynchronous loading state');
+  assert.match(loader, /import\('\.\.\/i18n\/translations\/fr\/merged\.jsonl'\)/);
   assert.ok(messages.length >= 35, `expected a complete screen, found ${messages.length} messages`);
   assert.ok(messages.some(({ source, context }) => source === 'Open' && context === 'navigation'));
   assert.ok(messages.some(({ source, context }) => source === 'Open' && context === 'ticket.status'));
@@ -26,11 +31,12 @@ test('the casebook source remains statically extractable by the CLI', async () =
   assert.ok(messages.some(({ source }) => source.includes('<link>')));
 });
 
-test('the teachable catalog has unique, non-empty French records', () => {
-  const ids = catalogs.fr.map(({ id }) => id);
+test('the generated French catalog has unique records and preserves the intentional source fallback', () => {
+  const ids = frenchRecords.map((row) => row.length === 3 ? `${row[0]}\0${row[1]}` : row[0]);
   assert.equal(new Set(ids).size, ids.length);
-  assert.ok(catalogs.fr.length >= 40, 'the example should remain broad enough to exercise a real screen');
-  assert.ok(catalogs.fr.every(({ id, translation }) => id.length > 0 && translation.length > 0));
+  assert.ok(frenchRecords.length >= 40, 'the example should remain broad enough to exercise a real screen');
+  assert.ok(frenchRecords.every((row) => (row.length === 2 || row.length === 3) && row.every(Boolean)));
+  assert.ok(!ids.includes('This message is intentionally missing from every translated catalog.'));
 });
 
 test('plural and select cases cover every branch in source and translated locales', async () => {
@@ -50,6 +56,15 @@ test('plural and select cases cover every branch in source and translated locale
     'À risque',
     'Terminé',
     'Inconnu',
+  ]);
+
+  await I18nManager.setLanguageId('en');
+  assert.deepEqual([0, 1, 12].map((count) => t.text(plural, { count })), ['No members', '1 member', '12 members']);
+  assert.deepEqual(['on_track', 'at_risk', 'done', 'other'].map((status) => t.text(projectStatus, { status })), [
+    'On track',
+    'At risk',
+    'Complete',
+    'Unknown',
   ]);
 });
 

@@ -1,5 +1,6 @@
 import * as formatting from './core/format';
 import { createT } from './core/i18n';
+
 export const t = /* @__PURE__ */ createT(formatting);
 export type { MessageApi, TApi } from './core/i18n';
 export * from './core/types';

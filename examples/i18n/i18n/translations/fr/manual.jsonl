@@ -1,0 +1,49 @@
+{"context":null,"notes":[],"id":"Overview","source":"Overview","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Case lab","source":"Case lab","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Fluentic casebook","source":"Fluentic casebook","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"A practical i18n test bench","source":"A practical i18n test bench","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Use the overview as a realistic product screen, then open the case lab to exercise one behavior at a time.","source":"Use the overview as a realistic product screen, then open the case lab to exercise one behavior at a time.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Invite teammate","source":"Invite teammate","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Built to test the edges of a small, composable i18n API.","source":"Built to test the edges of a small, composable i18n API.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Language","source":"Language","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Loading translations","source":"Loading translations","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Workspace summary","source":"Workspace summary","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Updated {date, date, short}","source":"Updated {date, date, short}","translation":"Mis à jour le {date, date, short}","origin":"manual"}
+{"context":null,"notes":[],"id":"{count, plural, =0 {No members} one {# member} other {# members}}","source":"{count, plural, =0 {No members} one {# member} other {# members}}","translation":"{count, plural, =0 {Aucun membre} one {# membre} other {# membres}}","origin":"manual"}
+{"context":null,"notes":[],"id":"Monthly active users","source":"Monthly active users","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"{count, number}","source":"{count, number}","translation":"{count, number}","origin":"manual"}
+{"context":null,"notes":[],"id":"Localization rollout","source":"Localization rollout","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"{status, select, on_track {On track} at_risk {At risk} done {Complete} other {Unknown}}","source":"{status, select, on_track {On track} at_risk {At risk} done {Complete} other {Unknown}}","translation":"{status, select, on_track {Dans les temps} at_risk {À risque} done {Terminé} other {Inconnu}}","origin":"manual"}
+{"context":null,"notes":[],"id":"{completed, number} of {total, number} tasks complete","source":"{completed, number} of {total, number} tasks complete","translation":"{completed, number} tâches sur {total, number} terminées","origin":"manual"}
+{"context":null,"notes":[],"id":"Next milestone: <strong>review translated strings</strong> with the regional teams.","source":"Next milestone: <strong>review translated strings</strong> with the regional teams.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Recent activity","source":"Recent activity","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"{name} changed the {field} in {project}.","source":"{name} changed the {field} in {project}.","translation":"{name} a modifié {field} dans {project}.","origin":"manual"}
+{"context":null,"notes":[],"id":"{count, plural, one {# more event} other {# more events}}","source":"{count, plural, one {# more event} other {# more events}}","translation":"{count, plural, one {# événement supplémentaire} other {# événements supplémentaires}}","origin":"manual"}
+{"context":null,"notes":[],"id":"Test controls","source":"Test controls","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Change values to exercise formatting","source":"Change values to exercise formatting","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Team members","source":"Team members","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Save preferences","source":"Save preferences","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Each card is a reproducible behavior covered by the example test suite.","source":"Each card is a reproducible behavior covered by the example test suite.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Plural branches","source":"Plural branches","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Try zero, one, and many.","source":"Try zero, one, and many.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Select branches","source":"Select branches","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Every product state has copy.","source":"Every product state has copy.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Numbers and dates","source":"Numbers and dates","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Locale-aware output from real values.","source":"Locale-aware output from real values.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Invoice total: {amount, number, ::currency/EUR}","source":"Invoice total: {amount, number, ::currency/EUR}","translation":"Total de la facture : {amount, number, ::currency/EUR}","origin":"manual"}
+{"context":null,"notes":[],"id":"Due {date, date, long}","source":"Due {date, date, long}","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Rich text","source":"Rich text","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Translators can move tagged content.","source":"Translators can move tagged content.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Read the <link>integration guide</link> before shipping.","source":"Read the <link>integration guide</link> before shipping.","translation":"Avant de publier, consultez le <link>guide d’intégration</link>.","origin":"manual"}
+{"context":null,"notes":[],"id":"Context","source":"Context","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"The same source can mean different things.","source":"The same source can mean different things.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Menu action","source":"Menu action","translation":"","origin":"manual"}
+{"context":"navigation","notes":[],"id":"navigation\u0000Open","source":"Open","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Ticket state","source":"Ticket state","translation":"","origin":"manual"}
+{"context":"ticket.status","notes":[],"id":"ticket.status\u0000Open","source":"Open","translation":"En cours","origin":"manual"}
+{"context":null,"notes":[],"id":"Regional fallback","source":"Regional fallback","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"fr-CA loads the fr catalog before falling back to source copy.","source":"fr-CA loads the fr catalog before falling back to source copy.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"This sentence exists in French.","source":"This sentence exists in French.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Source fallback","source":"Source fallback","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"Missing translations remain readable.","source":"Missing translations remain readable.","translation":"","origin":"manual"}
+{"context":null,"notes":[],"id":"This message is intentionally missing from every translated catalog.","source":"This message is intentionally missing from every translated catalog.","translation":"","origin":"manual"}

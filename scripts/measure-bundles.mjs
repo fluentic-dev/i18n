@@ -54,7 +54,7 @@ for (const [name, contents] of cases) {
     assert.ok(
       !Object.values(result.metafile.outputs).some((output) =>
         Object.entries(output.inputs).some(([path, info]) =>
-          info.bytesInOutput > 0 && /intl-messageformat|icu-messageformat-parser|@babel|node:/.test(path)
+          info.bytesInOutput > 0 && /intl-messageformat|icu-messageformat-parser|@babel|@noble\/hashes|node:/.test(path)
         )
       ),
       'unexpected formatter/compiler dependency: ' + name,

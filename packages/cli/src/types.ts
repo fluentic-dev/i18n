@@ -12,8 +12,19 @@ export type TranslationItem = MessageRecord & {
   chunkCount?: number;
 };
 export type TranslateFn = (request: TranslationRequest) => Promise<TranslationResult[]> | TranslationResult[];
-export type TranslatorOptions = { translate: TranslateFn; batch?: number | false; tag?: boolean; };
-export type DefinedTranslator = Readonly<{ translate: TranslateFn; batch: number | false; tag: boolean; }>;
+export type TranslatorSupportFn = (request: TranslationRequest) => boolean | Promise<boolean>;
+export type TranslatorOptions = {
+  translate: TranslateFn;
+  support?: TranslatorSupportFn;
+  batch?: number | false;
+  tag?: boolean;
+};
+export type DefinedTranslator = Readonly<{
+  translate: TranslateFn;
+  support?: TranslatorSupportFn;
+  batch: number | false;
+  tag: boolean;
+}>;
 export type Translator = TranslateFn | DefinedTranslator;
 export type ConverterInput = { languageId: string; items: TranslationRecord[]; filePath?: string; };
 export type ConverterOutput = { files: Array<{ path: string; content: string | Uint8Array; }>; };

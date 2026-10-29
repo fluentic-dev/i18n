@@ -1,6 +1,8 @@
 import type { CompactMessage } from '../shared/compact';
 import type { I18nJsxConfig } from '../types';
+
 export type { I18nJsxConfig } from '../types';
+
 export type I18nJsxOutput = I18nJsxConfig extends { JSX: infer Output; } ? NonNullable<Output> : unknown;
 export type I18nTagElement = I18nJsxConfig extends { Element: infer Element; } ? Element : never;
 export type I18nTagValue = I18nJsxConfig extends { Value: infer Value; } ? Value : unknown;
@@ -48,6 +50,7 @@ export type MessageRuntimeValue =
   | AnyMessageDescriptor
   | MessageValueFactory
   | Pick<MessageTagHandler, '__fluenticTagHandler'>;
+
 export type MessageParam = MessageRuntimeValue;
 export type MessageParams = Record<string, MessageParam>;
 export type MessageInput = string | AnyMessageDescriptor;
@@ -95,18 +98,22 @@ export type MessageFormatOptions = {
 
 export type GetJsxHandler<Output = unknown> = (options: MessageFormatOptions) => Output;
 
+export type CompiledTranslation = { compiled: CompactMessage; };
+
 export type TranslationGetter = (args: {
   languageId: LanguageId;
   context: MessageContext | null;
   message: string;
-}) => CompactMessage | null;
+  getCompiledId?: () => string;
+}) => CompactMessage | CompiledTranslation | null;
 
 export function isMessageDescriptor(value: unknown): value is AnyMessageDescriptor {
-  return Boolean(value) && typeof value === 'object' && (value as MessageDescriptor).__fluenticMessage === true;
+  return value !== null && typeof value === 'object' && '__fluenticMessage' in value &&
+    value.__fluenticMessage === true;
 }
 
 export function isMessageTagHandler(value: unknown): value is MessageTagHandler {
-  return typeof value === 'function' && (value as MessageTagHandler).__fluenticTagHandler === true;
+  return typeof value === 'function' && '__fluenticTagHandler' in value && value.__fluenticTagHandler === true;
 }
 
 export function isMessageSchemaValue(value: unknown): value is MessageSchemaValue {

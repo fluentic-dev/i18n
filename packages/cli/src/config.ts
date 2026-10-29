@@ -2,15 +2,20 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Converter, JsonValue, Translator } from './types';
 
+export type CatalogFormat = 'jsonl' | 'json' | 'cjs' | 'mjs';
+
 export type I18nConfig = {
   /** Emit [hash, compact AST] merged rows and enable build transforms. */
   compiled?: boolean;
+  /** Formats written for each merged runtime catalog. Defaults to jsonl. */
+  catalogFormat?: CatalogFormat | CatalogFormat[];
   /** Environment file relative to this config file. Defaults to i18n.env and i18n.env.local. */
   env?: string | false;
   root?: string;
   output?: string;
   languages: { source: string; targets: string[]; };
-  translator?: Translator;
+  /** Ordered translation providers. The first provider supporting a language pair is used. */
+  translator?: Translator | Translator[];
   convert?: Converter[];
   hashes?: boolean;
   dirs?: { cache?: string; exports?: string; translations?: string; };

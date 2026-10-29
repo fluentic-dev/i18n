@@ -49,3 +49,43 @@ test('only the selected lazy entry runs and rejected loads can be retried', asyn
   assert.deepEqual(await loader({ languageId: 'fr' }), [{ id: 'Hello', translation: 'Bonjour' }]);
   assert.equal(calls, 2);
 });
+
+test('compact JSONL and imported rows preserve contexts and omit untranslated entries', async () => {
+  const { createI18nManager } = await import('../dist/adapter.js');
+  const rows = [['Open', 'Ouvrir'], ['ticket', 'Open', 'En cours'], ['Missing', '']];
+
+  for (const data of [rows, rows.map((row) => JSON.stringify(row)).join('\n')]) {
+    const { manager } = createI18nManager();
+    manager.configure({ languageId: 'fr' });
+    manager.setTranslationLoader(() => data);
+    await manager.init();
+    assert.equal(manager.getTranslation({ message: 'Open' }), 'Ouvrir');
+    assert.equal(manager.getTranslation({ context: 'ticket', message: 'Open' }), 'En cours');
+    assert.equal(manager.getTranslation({ message: 'Missing' }), null);
+  }
+});
+
+test('compiled header works for JSONL and imported rows, including empty literals', async () => {
+  const { createI18nManager } = await import('../dist/adapter.js');
+  const rows = [{ compiled: true }, ['hash', [[0, 'name']]], ['empty', '']];
+
+  for (const data of [rows, rows.map((row) => JSON.stringify(row)).join('\n')]) {
+    const { manager } = createI18nManager();
+    manager.configure({ languageId: 'fr' });
+    manager.setTranslationLoader(() => data);
+    await manager.init();
+    assert.deepEqual(manager.getTranslation({ message: 'hash' }), [[0, 'name']]);
+    assert.equal(manager.getTranslation({ message: 'empty' }), '');
+  }
+});
+
+test('JSONL rejects malformed rows and compact instructions without the compiled header', async () => {
+  const { createI18nManager } = await import('../dist/adapter.js');
+
+  for (const data of ['["id",[[0,"name"]]]', '["context","id",42]', '{"compiled":true}\n["id",[[99]]]']) {
+    const { manager } = createI18nManager();
+    manager.configure({ languageId: 'fr' });
+    manager.setTranslationLoader(() => data);
+    await assert.rejects(manager.init(), TypeError);
+  }
+});

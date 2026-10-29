@@ -13,7 +13,9 @@ import type { CompactMessage } from './shared/compact';
 import { createFormatting } from './shared/formatting';
 import { interpret } from './shared/interpreter';
 import { createTagHandler, getRuntime, noTranslate } from './shared/runtime';
+
 export type CompiledPayload = readonly [id: string, fallback: CompactMessage];
+
 export type CompiledTextRenderer = {
   (message: CompiledPayload, params?: MessageParams): string;
   <Text extends string, Schema extends MessageSchema | undefined>(
@@ -21,6 +23,7 @@ export type CompiledTextRenderer = {
     ...args: DescriptorRenderArgs<Schema>
   ): string;
 };
+
 export type CompiledJsxRenderer = {
   (message: CompiledPayload, params?: MessageParams): I18nJsxOutput;
   <Text extends string, Schema extends MessageSchema | undefined>(
@@ -28,6 +31,7 @@ export type CompiledJsxRenderer = {
     ...args: DescriptorRenderArgs<Schema>
   ): I18nJsxOutput;
 };
+
 export type CompiledTApi =
   & Omit<TApi<I18nJsxOutput, I18nTagValue>, 'msg' | 'text' | 'jsx' | 'try' | 'context' | 'note' | 'meta'>
   & {
@@ -49,7 +53,9 @@ export type CompiledTApi =
       ...args: TryRenderArgs<T>
     ): T extends { readonly __fluenticMessage: true; } ? I18nJsxOutput : T;
   };
+
 const formatting = /* @__PURE__ */ createFormatting(interpret, true);
+
 function descriptor<Schema extends MessageSchema | undefined = undefined>(
   payload: CompiledPayload,
   schema?: Schema,
@@ -57,6 +63,7 @@ function descriptor<Schema extends MessageSchema | undefined = undefined>(
   if (!Array.isArray(payload) || payload.length !== 2 || typeof payload[0] !== 'string') {
     throw new TypeError('[i18n] compiled runtime requires compiled messages; enable the Fluentic plugin');
   }
+
   return Object.freeze({
     __fluenticMessage: true,
     text: payload[0],
@@ -67,12 +74,14 @@ function descriptor<Schema extends MessageSchema | undefined = undefined>(
     meta: undefined,
   }) as unknown as MessageDescriptor<string, Schema>;
 }
+
 function options(
   message: CompiledPayload | MessageDescriptor<string, MessageSchema | undefined>,
   params?: MessageParams,
 ) {
   return { msg: isMessageDescriptor(message) ? message : descriptor(message), params };
 }
+
 export const t = {
   msg: descriptor,
   text(message: CompiledPayload | MessageDescriptor<string, MessageSchema | undefined>, params?: MessageParams) {
@@ -89,8 +98,11 @@ export const t = {
   },
   tag(value: unknown) {
     if (typeof value === 'function') return createTagHandler(value as (chunks: unknown[]) => unknown);
+
     const adapt = getRuntime().tagElement;
+
     if (!adapt) throw new Error('[i18n] element tags require a platform adapter');
+
     return createTagHandler(adapt(value));
   },
   try(renderer: (message: unknown, params?: MessageParams) => unknown, value: unknown, params?: MessageParams) {

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useRef, useSyncExternalStore } from '
 import type { MessageFormatOptions } from './core/types';
 import { createI18nManager, defaultManaged, type I18nSnapshot, type ManagedI18n } from './manager';
 import { defaultRuntime, getRuntime, type PartsRenderer, type Runtime, withRuntime } from './shared/runtime';
+
 declare module '@fluentic/i18n/types' {
   interface I18nJsxConfig {
     JSX: React.ReactElement;
@@ -10,10 +11,12 @@ declare module '@fluentic/i18n/types' {
   }
 }
 const Context = createContext<ManagedI18n | null>(null);
+
 function TranslatedMessage({ render }: { render: PartsRenderer; }) {
   const managed = useContext(Context);
   const runtime = managed?.runtime ?? getRuntime();
   useSyncExternalStore(runtime.subscribe, runtime.getSnapshot, runtime.getSnapshot);
+
   return React.createElement(
     React.Fragment,
     null,
@@ -22,11 +25,14 @@ function TranslatedMessage({ render }: { render: PartsRenderer; }) {
     ),
   );
 }
-export function installReactAdapter(runtime: Runtime): void {
+
+export function installReactAdapter(runtime: Runtime, lineBreak: React.ReactNode = React.createElement('br')): void {
+  runtime.jsxLineBreak = lineBreak;
   runtime.jsxHandler = (_options: MessageFormatOptions, render: PartsRenderer) =>
     React.createElement(TranslatedMessage, { render });
   runtime.tagElement = (element) => {
     if (!React.isValidElement(element)) throw new TypeError('[i18n] t.tag expects a handler or React element');
+
     return (chunks) => React.cloneElement(element, undefined, ...chunks as React.ReactNode[]);
   };
 }
@@ -37,35 +43,55 @@ export const I18nState = {
   subscribe: defaultManaged.state.subscribe,
   use() {
     const managed = useContext(Context) ?? defaultManaged;
+
     return useSyncExternalStore(managed.state.subscribe, managed.state.get, managed.state.get);
   },
 };
+
 export function I18nProvider(
-  { children, snapshot, instance }: { children?: React.ReactNode; snapshot?: I18nSnapshot; instance?: ManagedI18n; },
+  { children, snapshot, instance, lineBreak }: {
+    children?: React.ReactNode;
+    snapshot?: I18nSnapshot;
+    instance?: ManagedI18n;
+    lineBreak?: React.ReactNode;
+  },
 ) {
-  const ref = useRef<{ managed: ManagedI18n; snapshot?: I18nSnapshot; instance?: ManagedI18n; } | null>(null);
-  if (!ref.current || ref.current.snapshot !== snapshot || ref.current.instance !== instance) {
+  const ref = useRef<
+    { managed: ManagedI18n; snapshot?: I18nSnapshot; instance?: ManagedI18n; lineBreak?: React.ReactNode; } | null
+  >(null);
+
+  if (
+    !ref.current || ref.current.snapshot !== snapshot || ref.current.instance !== instance ||
+    ref.current.lineBreak !== lineBreak
+  ) {
     if (snapshot && instance) throw new Error('[i18n] pass either snapshot or instance, not both');
+
     const managed = instance ?? createI18nManager();
-    installReactAdapter(managed.runtime);
+    installReactAdapter(managed.runtime, lineBreak);
     if (snapshot) managed.manager.hydrate(snapshot);
-    ref.current = { managed, snapshot, instance };
+    ref.current = { managed, snapshot, instance, lineBreak };
   }
+
   const managed = ref.current.managed;
   const state = useSyncExternalStore(managed.state.subscribe, managed.state.get, managed.state.get);
+
   if (!state.ready) throw new Error('[i18n] initialize the provider instance or pass a ready snapshot');
+
   return React.createElement(Context.Provider, { value: managed }, children);
 }
 /** Explicit binding for text attributes in isolated providers and SSR. */
 export function useI18nRuntime(): Runtime {
   const managed = useContext(Context) ?? defaultManaged;
   useSyncExternalStore(managed.state.subscribe, managed.state.get, managed.state.get);
+
   return managed.runtime;
 }
+
 export { createI18nManager, defineTranslationLoader } from './manager';
 export type { I18nSnapshot, I18nStorage, ManagedI18n, StateData } from './manager';
 /** Bind an existing universal renderer to this provider (including client SSR). */
 export function useI18nRenderer<F extends (...args: any[]) => any>(renderer: F): F {
   const runtime = useI18nRuntime();
+
   return ((...args: Parameters<F>) => withRuntime(runtime, () => renderer(...args))) as F;
 }

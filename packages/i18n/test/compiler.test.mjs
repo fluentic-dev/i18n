@@ -92,7 +92,7 @@ test('compiled catalog lookup and source fallback keep descriptors inert', async
   const descriptor = t.msg([messageId('ctx', 'Hello {name}'), compileMessage('Hello {name}')], { name: String });
   const rows = compileCatalog([{ source: 'Hello {name}', context: 'ctx', translation: 'Bonjour {name}' }]);
   I18nManager.configure({ languageId: 'fr' });
-  I18nManager.setTranslationLoader(() => rows);
+  I18nManager.setTranslationLoader(() => [{ compiled: true }, ...rows].map((row) => JSON.stringify(row)).join('\n'));
   await I18nManager.init();
   assert.equal(t.text(descriptor, { name: 'Ada' }), 'Bonjour Ada');
   assert.equal(t.notranslate(() => t.text(descriptor, { name: 'Ada' })), 'Hello Ada');
@@ -160,4 +160,51 @@ test('TypeScript wrappers preserve scope escape checks and alias tracing', () =>
     { filename: 'f.ts' },
   );
   assert.doesNotMatch(result.code, /\.context\(/);
+});
+
+test('regular runtime renders compiled catalogs without the source plugin', async () => {
+  const managed = createI18nManager();
+  const rows = compileCatalog([
+    { context: 'menu', source: 'Hello {name}', translation: 'Bonjour {name}' },
+    { context: null, source: 'Literal', translation: "'{name}'" },
+    { context: null, source: '你好 🌍', translation: 'Salut 🌍' },
+  ]);
+  managed.manager.configure({ languageId: 'fr-CA', fallbackLanguageId: 'en' });
+  managed.manager.setTranslationLoader(({ languageId }) => languageId === 'fr' ? [{ compiled: true }, ...rows] : []);
+  await managed.manager.init();
+
+  try {
+    setRuntimeResolver(() => managed.runtime);
+    assert.equal(dynamic.context('menu').text('Hello {name}', { name: 'Ada' }), 'Bonjour Ada');
+    assert.equal(dynamic.text('Literal'), '{name}');
+    assert.equal(dynamic.text('你好 🌍'), 'Salut 🌍');
+    assert.equal(dynamic.text('Missing'), 'Missing');
+
+    const restored = createI18nManager();
+    restored.manager.hydrate(JSON.parse(JSON.stringify(managed.manager.getSnapshot())));
+    setRuntimeResolver(() => restored.runtime);
+    assert.equal(dynamic.context('menu').text('Hello {name}', { name: 'Ada' }), 'Bonjour Ada');
+    assert.equal(dynamic.text('Literal'), '{name}');
+  } finally {
+    setRuntimeResolver(() => defaultRuntime);
+  }
+});
+
+test('compiled runtime rejects uncompiled translations and accepts compiled literals', async () => {
+  const managed = createI18nManager();
+  const id = messageId(null, 'Hello');
+  managed.manager.configure({ languageId: 'fr' });
+  managed.manager.setTranslationLoader(() => [[id, 'Bonjour {name}']]);
+  await managed.manager.init();
+
+  try {
+    setRuntimeResolver(() => managed.runtime);
+    assert.throws(() => t.text([id, 'Hello']), /requires compiled translations/);
+
+    managed.manager.setTranslationLoader(() => [{ compiled: true }, [id, 'Bonjour {name}']]);
+    await managed.manager.init();
+    assert.equal(t.text([id, 'Hello']), 'Bonjour {name}');
+  } finally {
+    setRuntimeResolver(() => defaultRuntime);
+  }
 });

@@ -1,3 +1,13 @@
+import { defaultRuntime } from '@fluentic/i18n/adapter';
+import { I18nProvider as ReactI18nProvider, installReactAdapter } from '@fluentic/i18n/react';
+import React from 'react';
+
+installReactAdapter(defaultRuntime, '\n');
+
+export function I18nProvider(props: React.ComponentProps<typeof ReactI18nProvider>) {
+  return React.createElement(ReactI18nProvider, { ...props, lineBreak: '\n' });
+}
+
 export * from '@fluentic/i18n/react';
 import type { I18nStorage } from '@fluentic/i18n/adapter';
 /** Supply AsyncStorage (or a compatible store); no native dependency is forced. */

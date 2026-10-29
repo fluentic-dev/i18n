@@ -1,0 +1,296 @@
+[
+  {
+    "context": null,
+    "notes": [],
+    "id": "Overview",
+    "source": "Overview"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Case lab",
+    "source": "Case lab"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Fluentic casebook",
+    "source": "Fluentic casebook"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "A practical i18n test bench",
+    "source": "A practical i18n test bench"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Use the overview as a realistic product screen, then open the case lab to exercise one behavior at a time.",
+    "source": "Use the overview as a realistic product screen, then open the case lab to exercise one behavior at a time."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Invite teammate",
+    "source": "Invite teammate"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Built to test the edges of a small, composable i18n API.",
+    "source": "Built to test the edges of a small, composable i18n API."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Language",
+    "source": "Language"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Loading translations",
+    "source": "Loading translations"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Workspace summary",
+    "source": "Workspace summary"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Updated {date, date, short}",
+    "source": "Updated {date, date, short}"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "{count, plural, =0 {No members} one {# member} other {# members}}",
+    "source": "{count, plural, =0 {No members} one {# member} other {# members}}"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Monthly active users",
+    "source": "Monthly active users"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "{count, number}",
+    "source": "{count, number}"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Localization rollout",
+    "source": "Localization rollout"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "{status, select, on_track {On track} at_risk {At risk} done {Complete} other {Unknown}}",
+    "source": "{status, select, on_track {On track} at_risk {At risk} done {Complete} other {Unknown}}"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "{completed, number} of {total, number} tasks complete",
+    "source": "{completed, number} of {total, number} tasks complete"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Next milestone: <strong>review translated strings</strong> with the regional teams.",
+    "source": "Next milestone: <strong>review translated strings</strong> with the regional teams."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Recent activity",
+    "source": "Recent activity"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "{name} changed the {field} in {project}.",
+    "source": "{name} changed the {field} in {project}."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "{count, plural, one {# more event} other {# more events}}",
+    "source": "{count, plural, one {# more event} other {# more events}}"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Test controls",
+    "source": "Test controls"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Change values to exercise formatting",
+    "source": "Change values to exercise formatting"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Team members",
+    "source": "Team members"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Save preferences",
+    "source": "Save preferences"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Each card is a reproducible behavior covered by the example test suite.",
+    "source": "Each card is a reproducible behavior covered by the example test suite."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Plural branches",
+    "source": "Plural branches"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Try zero, one, and many.",
+    "source": "Try zero, one, and many."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Select branches",
+    "source": "Select branches"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Every product state has copy.",
+    "source": "Every product state has copy."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Numbers and dates",
+    "source": "Numbers and dates"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Locale-aware output from real values.",
+    "source": "Locale-aware output from real values."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Invoice total: {amount, number, ::currency/EUR}",
+    "source": "Invoice total: {amount, number, ::currency/EUR}"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Due {date, date, long}",
+    "source": "Due {date, date, long}"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Rich text",
+    "source": "Rich text"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Translators can move tagged content.",
+    "source": "Translators can move tagged content."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Read the <link>integration guide</link> before shipping.",
+    "source": "Read the <link>integration guide</link> before shipping."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Context",
+    "source": "Context"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "The same source can mean different things.",
+    "source": "The same source can mean different things."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Menu action",
+    "source": "Menu action"
+  },
+  {
+    "context": "navigation",
+    "notes": [],
+    "id": "navigation\u0000Open",
+    "source": "Open"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Ticket state",
+    "source": "Ticket state"
+  },
+  {
+    "context": "ticket.status",
+    "notes": [],
+    "id": "ticket.status\u0000Open",
+    "source": "Open"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Regional fallback",
+    "source": "Regional fallback"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "fr-CA loads the fr catalog before falling back to source copy.",
+    "source": "fr-CA loads the fr catalog before falling back to source copy."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "This sentence exists in French.",
+    "source": "This sentence exists in French."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Source fallback",
+    "source": "Source fallback"
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "Missing translations remain readable.",
+    "source": "Missing translations remain readable."
+  },
+  {
+    "context": null,
+    "notes": [],
+    "id": "This message is intentionally missing from every translated catalog.",
+    "source": "This message is intentionally missing from every translated catalog."
+  }
+]

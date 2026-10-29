@@ -1,17 +1,22 @@
 import type { CompactMessage } from './compact';
 import type { Engine } from './formatting';
+
 const numberCache = new Map<string, Intl.NumberFormat>();
 const dateCache = new Map<string, Intl.DateTimeFormat>();
 const pluralCache = new Map<string, Intl.PluralRules>();
+
 function cached<T>(map: Map<string, T>, key: string, create: () => T): T {
   let value = map.get(key);
+
   if (!value) {
     value = create();
     if (map.size >= 100) map.delete(map.keys().next().value!);
     map.set(key, value);
   }
+
   return value;
 }
+
 const numberDefaults = {
   integer: { maximumFractionDigits: 0 },
   currency: { style: 'currency' },
@@ -32,28 +37,39 @@ const timeDefaults = {
 export const interpret: Engine = (message, locale, formats, values) => {
   const number = (value: number, options?: Intl.NumberFormatOptions) =>
     cached(numberCache, JSON.stringify([locale, options]), () => new Intl.NumberFormat(locale, options)).format(value);
-  function render(message: CompactMessage, pound?: number): unknown[] {
+
+  const render = (message: CompactMessage, pound?: number): unknown[] => {
     if (typeof message === 'string') return [message];
+
     const output: unknown[] = [];
-    function append(value: unknown) {
-      if (Array.isArray(value)) { for (const part of value) append(part); }
-      else if (typeof value === 'string' && typeof output[output.length - 1] === 'string') {
+
+    const append = (value: unknown) => {
+      if (Array.isArray(value)) {
+        for (const part of value) append(part);
+      } else if (typeof value === 'string' && typeof output[output.length - 1] === 'string') {
         output[output.length - 1] += value;
       } else output.push(value);
-    }
+    };
+
     for (const part of message) {
       if (typeof part === 'string') {
         append(part);
         continue;
       }
+
       const op = part[0];
+
       if (op === 6) {
         if (pound !== undefined) append(number(pound));
         continue;
       }
+
       const name = part[1];
+
       if (!(name in values)) throw new Error('[i18n] Missing required message parameter: ' + name);
+
       const value = values[name];
+
       if (op === 0) {
         append(typeof value === 'string' || typeof value === 'number' ? String(value) : value || '');
         continue;
@@ -62,18 +78,22 @@ export const interpret: Engine = (message, locale, formats, values) => {
         const style = part[2] as string | Record<string, unknown> | null;
         const kind = op === 1 ? 'number' : op === 2 ? 'date' : 'time';
         const defaults = op === 1 ? numberDefaults : op === 2 ? dateDefaults : timeDefaults;
+
         const options = (typeof style === 'string'
           ? formats[kind]?.[style] ?? (defaults as Record<string, object>)[style]
           : style ?? (op === 3 ? timeDefaults.medium : undefined)) as Record<string, unknown> | undefined;
+
         if (op === 1) {
           append(number(Number(value) * (Number(options?.scale ?? 1)), options));
-        } else {append(
+        } else {
+          append(
             cached(
               dateCache,
               JSON.stringify([locale, options]),
               () => new Intl.DateTimeFormat(locale, options as Intl.DateTimeFormatOptions),
             ).format(value as Date),
-          );}
+          );
+        }
       } else if (op === 4) {
         const branches = part[2];
         append(
@@ -86,6 +106,7 @@ export const interpret: Engine = (message, locale, formats, values) => {
         const adjusted = count - part[2];
         const branches = part[4];
         const exact = '=' + count;
+
         const key = Object.prototype.hasOwnProperty.call(branches, exact)
           ? exact
           : cached(
@@ -99,7 +120,9 @@ export const interpret: Engine = (message, locale, formats, values) => {
         append(value(render(part[2], pound)));
       }
     }
+
     return output;
-  }
+  };
+
   return render(message);
 };

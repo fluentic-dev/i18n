@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import type { PluginOptions } from './options';
+
 const require = createRequire(import.meta.url);
 export default class FluenticI18nPlugin {
   constructor(private options: PluginOptions = {}) {}

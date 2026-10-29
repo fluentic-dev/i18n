@@ -1,24 +1,18 @@
 import { t } from '@fluentic/i18n';
-import { I18nManager } from '@fluentic/i18n-web';
-import { type ReactNode, useState } from 'react';
-import { loadExampleCatalog } from './catalogs';
+import { I18nManager, I18nState } from '@fluentic/i18n-web';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { loadExampleTranslations } from './translations';
 
 I18nManager.configure({ languageId: 'en', fallbackLanguageId: 'en' });
-I18nManager.setTranslationLoader(loadExampleCatalog);
+I18nManager.setTranslationLoader(loadExampleTranslations);
 export const ready = I18nManager.init();
 
-const strong = (chunks: unknown[]) => <strong>{chunks as string[]}</strong>;
-
 export function I18nDemo() {
-  const [languageId, setLanguageId] = useState<'en' | 'fr' | 'fr-CA'>('en');
+  I18nState.use();
   const [screen, setScreen] = useState<'overview' | 'cases'>('overview');
   const [members, setMembers] = useState(7);
   const [status, setStatus] = useState('on_track');
   const [updatedAt] = useState(() => new Date('2026-10-25T09:30:00Z'));
-  const changeLanguage = (next: 'en' | 'fr' | 'fr-CA') => {
-    setLanguageId(next);
-    void I18nManager.setLanguageId(next);
-  };
 
   return (
     <main className='shell'>
@@ -55,18 +49,7 @@ export function I18nDemo() {
             </p>
           </div>
           <div className='actions'>
-            <label className='language'>
-              <span>{t.text('Language')}</span>
-              <select
-                value={languageId}
-                onChange={(event) => changeLanguage(event.target.value as typeof languageId)}
-                aria-label='Language'
-              >
-                <option value='en'>English</option>
-                <option value='fr'>Français</option>
-                <option value='fr-CA'>Français (Canada)</option>
-              </select>
-            </label>
+            <LanguageSelect />
             <button className='primary'>{t.text('Invite teammate')}</button>
           </div>
         </header>
@@ -87,6 +70,66 @@ export function I18nDemo() {
         </footer>
       </section>
     </main>
+  );
+}
+
+const languageOptions = [
+  { id: 'en', label: 'English' },
+  { id: 'fr', label: 'Français' },
+  { id: 'fr-CA', label: 'Français (Canada)' },
+];
+
+function LanguageSelect() {
+  const { isLoading, languageId } = I18nState.use();
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const selected = languageOptions.find((option) => option.id === languageId) ?? languageOptions[0];
+
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (!(event.target instanceof Node) || !root.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, []);
+
+  return (
+    <div className='language' ref={root}>
+      <span>{t.text('Language')}</span>
+      <button
+        type='button'
+        className='language-trigger'
+        aria-haspopup='listbox'
+        aria-expanded={open}
+        aria-label={t.text('Language')}
+        aria-busy={isLoading}
+        disabled={isLoading}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span>{selected.label}</span>
+        {isLoading ? <span className='spinner' aria-label={t.text('Loading translations')} /> : <span>⌄</span>}
+      </button>
+      {open && (
+        <div className='language-menu' role='listbox' aria-label={t.text('Language')}>
+          {languageOptions.map((option) => (
+            <button
+              type='button'
+              role='option'
+              aria-selected={option.id === languageId}
+              className={option.id === languageId ? 'selected' : ''}
+              key={option.id}
+              onClick={async () => {
+                setOpen(false);
+                if (option.id !== languageId) await I18nManager.setLanguageId(option.id);
+              }}
+            >
+              <span>{option.label}</span>
+              {option.id === languageId && <span aria-hidden='true'>✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -143,8 +186,8 @@ function Overview({ members, setMembers, updatedAt }: SharedProps) {
         </div>
         <p className='note'>
           {t.jsx('Next milestone: <strong>review translated strings</strong> with the regional teams.', {
-            strong: t.tag(strong),
-          }) as ReactNode}
+            strong: t.tag((chunks) => <strong>{chunks}</strong>),
+          })}
         </p>
       </article>
       <article className='card activity'>
@@ -235,12 +278,7 @@ function CaseLab(
           </output>
         </Case>
         <Case title={t.text('Select branches')} detail={t.text('Every product state has copy.')}>
-          <select value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value='on_track'>on-track</option>
-            <option value='at_risk'>at-risk</option>
-            <option value='done'>done</option>
-            <option value='other'>other</option>
-          </select>
+          <CaseSelect value={status} onChange={setStatus} />
           <output>
             {t.text('{status, select, on_track {On track} at_risk {At risk} done {Complete} other {Unknown}}', {
               status,
@@ -254,8 +292,8 @@ function CaseLab(
         <Case title={t.text('Rich text')} detail={t.text('Translators can move tagged content.')}>
           <output>
             {t.jsx('Read the <link>integration guide</link> before shipping.', {
-              link: t.tag((chunks) => <a href='#guide'>{chunks as string[]}</a>),
-            }) as ReactNode}
+              link: t.tag((chunks) => <a href='#guide'>{chunks}</a>),
+            })}
           </output>
         </Case>
         <Case title={t.text('Context')} detail={t.text('The same source can mean different things.')}>
@@ -283,6 +321,45 @@ function CaseLab(
         </Case>
       </div>
     </section>
+  );
+}
+
+const statusOptions = ['on_track', 'at_risk', 'done', 'other'];
+
+function CaseSelect({ value, onChange }: { value: string; onChange: (value: string) => void; }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className='case-select'>
+      <button
+        type='button'
+        className='case-select-trigger'
+        aria-haspopup='listbox'
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span>{value.replace('_', '-')}</span>
+        <span aria-hidden='true'>⌄</span>
+      </button>
+      {open && (
+        <div className='case-select-menu' role='listbox'>
+          {statusOptions.map((option) => (
+            <button
+              type='button'
+              role='option'
+              aria-selected={option === value}
+              className={option === value ? 'selected' : ''}
+              key={option}
+              onClick={() => {
+                setOpen(false);
+                onChange(option);
+              }}
+            >
+              {option.replace('_', '-')}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

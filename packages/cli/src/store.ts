@@ -22,10 +22,34 @@ export function getPaths(config: ReturnType<typeof import('./config').prepareCon
 
 export async function readRecords(file: string | undefined): Promise<TranslationRecord[]> {
   if (!file) return [];
+  let text: string;
+
   try {
-    return parseJsonl(await readFile(file, 'utf8'));
-  } catch {
-    return [];
+    text = await readFile(file, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw error;
+  }
+
+  if (/^(?:<{7}|={7}|>{7}|\|{7})(?:\s|$)/m.test(text)) {
+    throw new Error(`[i18n] unresolved merge conflict in ${file}; resolve it before continuing`);
+  }
+
+  try {
+    const records = parseJsonl(text);
+
+    if (
+      records.some((item) =>
+        !item || typeof item !== 'object' || typeof item.id !== 'string' || typeof item.source !== 'string' ||
+        typeof item.translation !== 'string'
+      )
+    ) {
+      throw new TypeError('expected translation records with id, source, and translation');
+    }
+
+    return records;
+  } catch (error) {
+    throw new Error(`[i18n] invalid translation file ${file}: ${String(error)}`);
   }
 }
 
@@ -42,7 +66,8 @@ export async function writeJson(file: string, value: unknown): Promise<void> {
 export async function readExtracted(file: string): Promise<TranslationRecord[]> {
   try {
     return JSON.parse(await readFile(file, 'utf8')) as TranslationRecord[];
-  } catch {
-    return [];
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw new Error(`[i18n] unable to read extracted messages ${file}: ${String(error)}`);
   }
 }

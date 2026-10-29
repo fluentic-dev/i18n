@@ -1,4 +1,4 @@
-import { COMPACT_VERSION, compileCatalog } from '@fluentic/i18n/compiler';
+import { compileCatalog } from '@fluentic/i18n/compiler';
 import { glob } from 'fast-glob';
 import { rm, writeFile } from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
@@ -30,11 +30,31 @@ export async function extract(config: I18nConfig, report?: Reporter): Promise<Me
   return unique;
 }
 
+function getCatalogFormats(formats: I18nConfig['catalogFormat']) {
+  const selected = formats === undefined ? ['jsonl'] : Array.isArray(formats) ? formats : [formats];
+  const supported = ['jsonl', 'json', 'cjs', 'mjs'];
+
+  if (selected.length === 0 || selected.some((format) => !supported.includes(format))) {
+    throw new Error('[i18n] catalogFormat must contain at least one supported format');
+  }
+
+  return selected;
+}
+
 export async function merge(config: I18nConfig, report?: Reporter): Promise<void> {
   const prepared = (await import('./config')).prepareConfig(config);
+  const formats = getCatalogFormats(prepared.catalogFormat);
   const source = await readExtracted(getPaths(prepared).extracted);
   report?.({ type: 'phase:start', phase: 'merge' });
   const hashes: Record<string, number> = {};
+
+  // Check every authoring layer before writing any output.
+  for (const languageId of prepared.languages.targets) {
+    const paths = getPaths(prepared, languageId);
+    await readRecords(paths.auto);
+    await readRecords(paths.manual);
+  }
+
   for (const languageId of prepared.languages.targets) {
     const paths = getPaths(prepared, languageId);
     const oldAuto = await readRecords(paths.auto);
@@ -52,18 +72,53 @@ export async function merge(config: I18nConfig, report?: Reporter): Promise<void
     });
     await writeRecords(paths.auto!, auto);
     await writeRecords(paths.manual!, manual);
-    if (prepared.compiled) {
-      const rows = compileCatalog(merged);
-      await writeFile(paths.merged!, rows.map((row) => JSON.stringify(row)).join('\n') + (rows.length ? '\n' : ''));
-      await writeJson(paths.merged! + '.meta.json', { format: 'fluentic', version: COMPACT_VERSION });
-    } else {
-      await writeRecords(paths.merged!, merged);
-      await rm(paths.merged! + '.meta.json', { force: true });
+    const ordered = [...merged].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    const rows = prepared.compiled
+      ? [{ compiled: true }, ...compileCatalog(ordered)]
+      : ordered.filter((item) => item.translation !== '').map((item) =>
+        item.context ? [item.context, item.source, item.translation] : [item.source, item.translation]
+      );
+    const allFormats = ['jsonl', 'json', 'cjs', 'mjs'] as const;
+
+    for (const format of allFormats) {
+      const file = paths.merged!.replace(/\.jsonl$/, `.${format}`);
+
+      if (!formats.includes(format)) {
+        await rm(file, { force: true });
+        continue;
+      }
+
+      const lines = rows.map((row) => JSON.stringify(row));
+      const content = format === 'jsonl'
+        ? lines.join('\n') + (lines.length ? '\n' : '')
+        : format === 'json'
+        ? `[\n${lines.map((line) => `  ${line},\n`).join('')}  null\n]\n`
+        : `${format === 'cjs' ? 'module.exports = ' : 'export default '}[\n${
+          lines.map((line) => `  ${line},\n`).join('')
+        }];\n`;
+
+      await writeFile(file, content);
     }
+    await rm(paths.merged! + '.meta.json', { force: true });
     hashes[languageId] = (await import('./hash')).hashTranslations(merged);
   }
   if (prepared.hashes !== false) await writeJson(getPaths(prepared).hash, hashes);
   report?.({ type: 'phase:end', phase: 'merge' });
+}
+
+/** Rebuild generated catalogs after authoring conflicts have been resolved. */
+export async function conflict(config: I18nConfig, report?: Reporter): Promise<void> {
+  const prepared = (await import('./config')).prepareConfig(config);
+  getCatalogFormats(prepared.catalogFormat);
+
+  for (const languageId of prepared.languages.targets) {
+    const paths = getPaths(prepared, languageId);
+    await readRecords(paths.auto);
+    await readRecords(paths.manual);
+  }
+
+  await extract(config, report);
+  await merge(config, report);
 }
 
 export async function translateAuto(config: I18nConfig, report?: Reporter): Promise<void> {
@@ -77,7 +132,21 @@ export async function translateAuto(config: I18nConfig, report?: Reporter): Prom
     const auto = await readRecords(paths.auto);
     const existing = new Set([...manual, ...auto].filter((item) => item.translation).map((item) => item.id));
     const items = source.filter((item) => !existing.has(item.id));
-    const translator = normalizeTranslator(config.translator);
+    if (!items.length) continue;
+    const request = {
+      sourceLanguageId: prepared.languages.source,
+      targetLanguageId: languageId,
+      items,
+      env: getConfigEnv(config),
+    };
+    const translator = await selectTranslator(config.translator, request);
+    if (!translator) {
+      report?.({
+        type: 'warning',
+        message: `No configured translator supports ${prepared.languages.source} -> ${languageId}`,
+      });
+      continue;
+    }
     const split = translator.tag ? null : splitTaggedItems(items);
     const requestItems: TranslationItem[] = split?.items ?? items;
     const chunks = split?.chunks ?? new Map<string, TagChunk[]>();
@@ -88,7 +157,7 @@ export async function translateAuto(config: I18nConfig, report?: Reporter): Prom
           sourceLanguageId: prepared.languages.source,
           targetLanguageId: languageId,
           items: batch,
-          env: getConfigEnv(config),
+          env: request.env,
         }),
       );
     }
@@ -106,6 +175,17 @@ export async function translateAuto(config: I18nConfig, report?: Reporter): Prom
     for (const item of translated) report?.({ type: 'message:translated', id: item.id, languageId });
   }
   report?.({ type: 'phase:end', phase: 'translate' });
+}
+
+async function selectTranslator(
+  configured: Translator | Translator[],
+  request: Parameters<NonNullable<DefinedTranslator['support']>>[0],
+): Promise<DefinedTranslator | null> {
+  const translators = (Array.isArray(configured) ? configured : [configured]).map(normalizeTranslator);
+  for (const translator of translators) {
+    if (!translator.support || await translator.support(request)) return translator;
+  }
+  return null;
 }
 
 function normalizeTranslator(translator: Translator): DefinedTranslator {
@@ -199,7 +279,7 @@ export async function exportTranslations(config: I18nConfig, converterName: stri
   report?.({ type: 'phase:start', phase: 'export' });
   for (const languageId of prepared.languages.targets) {
     const paths = getPaths(prepared, languageId);
-    const records = prepared.compiled ? await readableMerged(prepared, languageId) : await readRecords(paths.merged);
+    const records = await readableMerged(prepared, languageId);
     const result = await converter.export({ languageId, items: records });
     const exportRoot = path.join(getPaths(prepared).exports, converter.name, languageId);
     for (const file of result.files) {

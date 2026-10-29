@@ -49,7 +49,7 @@ export type TApi<JsxOutput = unknown, TagValue = unknown> = MessageApi<JsxOutput
 };
 
 export function createT({ getText, getJsx }: Formatting): TApi<I18nJsxOutput, I18nTagValue> {
-  function createScope(scope: MessageScope): MessageApi {
+  const createScope = (scope: MessageScope): MessageApi => {
     return {
       context(name) {
         return createScope({ ...scope, context: scope.context ? `${scope.context}.${name}` : name });
@@ -70,13 +70,13 @@ export function createT({ getText, getJsx }: Formatting): TApi<I18nJsxOutput, I1
         return getJsx(toFormatOptions(message, params, scope));
       },
     };
-  }
+  };
 
-  function createDescriptor<const Text extends string, const Schema extends MessageSchema | undefined>(
+  const createDescriptor = <const Text extends string, const Schema extends MessageSchema | undefined>(
     message: Text,
     schema: Schema | undefined,
     scope: MessageScope,
-  ): MessageDescriptor<Text, Schema> {
+  ): MessageDescriptor<Text, Schema> => {
     return Object.freeze({
       __fluenticMessage: true,
       text: Array.isArray(message) ? message[0] : message,
@@ -86,12 +86,13 @@ export function createT({ getText, getJsx }: Formatting): TApi<I18nJsxOutput, I1
       notes: scope.notes,
       meta: scope.meta,
     }) as unknown as MessageDescriptor<Text, Schema>;
-  }
+  };
 
-  function toFormatOptions(message: MessageInput, params: MessageParams | undefined, scope: MessageScope) {
+  const toFormatOptions = (message: MessageInput, params: MessageParams | undefined, scope: MessageScope) => {
     if (isMessageDescriptor(message)) return { msg: message, params };
+
     return { msg: createDescriptor(message, undefined, scope), params };
-  }
+  };
 
   const rootScope = createScope({ context: null, notes: [] });
 
@@ -105,9 +106,12 @@ export function createT({ getText, getJsx }: Formatting): TApi<I18nJsxOutput, I1
     tag<T = unknown, R = unknown>(handler: (chunks: Array<string | T>) => R) {
       if (typeof handler !== 'function') {
         const adapt = getRuntime().tagElement;
+
         if (!adapt) throw new Error('[i18n] element tags require a platform adapter');
+
         return createTagHandler(adapt(handler));
       }
+
       return createTagHandler(handler);
     },
     try<T>(renderer: TextRenderer | JsxRenderer, value: T, params?: MessageParams) {

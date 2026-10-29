@@ -5,8 +5,23 @@ export function defineTranslator(options: TranslatorOptions): DefinedTranslator 
   if (batch !== false && (!Number.isInteger(batch) || batch < 1)) {
     throw new Error('Translator batch must be a positive integer or false');
   }
-  return Object.freeze({ translate: options.translate, batch, tag: options.tag ?? false });
+  return Object.freeze({
+    translate: options.translate,
+    support: options.support,
+    batch,
+    tag: options.tag ?? false,
+  });
 }
+
+const deeplSourceLanguages = new Set(
+  'ar bg cs da de el en es et fi fr he hu id it ja ko lt lv nb nl pl pt ro ru sk sl sv th tr uk vi zh'.split(' '),
+);
+const deeplTargetLanguages = new Set(
+  'ar bg cs da de el en en-gb en-us es es-419 et fi fr he hu id it ja ko lt lv nb nl pl pt pt-br pt-pt ro ru sk sl sv th tr uk vi zh zh-hans zh-hant'
+    .split(
+      ' ',
+    ),
+);
 
 export type ProviderTranslatorOptions = {
   apiKeyEnv?: string;
@@ -22,6 +37,7 @@ export function createGoogleTranslator(options?: ProviderOptions): Translator {
   return defineTranslator({
     batch: 50,
     tag: false,
+    support: () => true,
     translate: async ({ items, sourceLanguageId, targetLanguageId, env }) => {
       const resolved = typeof options === 'function' ? options({ env }) : options ?? {};
       const key = resolved.apiKey ?? env(resolved.apiKeyEnv ?? 'GOOGLE_TRANSLATE_API_KEY');
@@ -53,6 +69,9 @@ export function createDeepLTranslator(options?: ProviderOptions): Translator {
   return defineTranslator({
     batch: 50,
     tag: true,
+    support: ({ sourceLanguageId, targetLanguageId }) =>
+      deeplSourceLanguages.has(sourceLanguageId.toLowerCase()) &&
+      deeplTargetLanguages.has(targetLanguageId.toLowerCase()),
     translate: async ({ items, sourceLanguageId, targetLanguageId, env }) => {
       const resolved = typeof options === 'function' ? options({ env }) : options ?? {};
       const key = resolved.apiKey ?? env(resolved.apiKeyEnv ?? 'DEEPL_API_KEY');

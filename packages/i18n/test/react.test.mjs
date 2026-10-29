@@ -195,3 +195,43 @@ test('isolated providers preserve language during SSR and snapshot replacement',
   assert.equal(root.toJSON().props.title, 'Suchen');
   await act(async () => root.unmount());
 });
+
+test('{break} renders as text newline, web br, and native newline for both runtimes', async () => {
+  const { createI18nManager, defaultRuntime, setRuntimeResolver } = await import('../dist/adapter.js');
+  const { installReactAdapter } = await import('../dist/react.js');
+  const { t: compiled } = await import('../dist/compiled.js');
+  const { compileMessage, messageId } = await import('../dist/compiler.js');
+  const source = 'First{break}Second';
+  const payload = [messageId(null, source), compileMessage(source)];
+  const web = createI18nManager();
+  const native = createI18nManager();
+  installReactAdapter(web.runtime);
+  installReactAdapter(native.runtime, '\n');
+  await Promise.all([web.manager.init(), native.manager.init()]);
+
+  try {
+    for (
+      const [runtime, expected] of [
+        [web.runtime, ['First', { type: 'br', props: {}, children: null }, 'Second']],
+        [native.runtime, 'First\nSecond'],
+      ]
+    ) {
+      setRuntimeResolver(() => runtime);
+      assert.equal(t.text(source), 'First\nSecond');
+      assert.equal(compiled.text(payload), 'First\nSecond');
+
+      for (const element of [t.jsx(source), compiled.jsx(payload)]) {
+        let root;
+        await act(async () => {
+          root = create(element);
+        });
+        assert.deepEqual(root.toJSON(), expected);
+        await act(async () => {
+          root.unmount();
+        });
+      }
+    }
+  } finally {
+    setRuntimeResolver(() => defaultRuntime);
+  }
+});

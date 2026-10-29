@@ -6,7 +6,7 @@ import { access } from 'node:fs/promises';
 import path from 'node:path';
 import { isConfig, loadConfigEnv, registerConfigEnv } from './config';
 import { createConsoleReporter } from './events';
-import { exportTranslations, extract, importTranslations, merge, translateAuto, update } from './run';
+import { conflict, exportTranslations, extract, importTranslations, merge, translateAuto, update } from './run';
 
 const program = new Command();
 program.name('fluentic-i18n').description('Fluentic i18n extraction and catalog tooling.').option(
@@ -35,10 +35,16 @@ async function findDefaultConfig(): Promise<string> {
 }
 
 for (
-  const [name, action] of [['extract', extract], ['merge', merge], ['translate', translateAuto], [
-    'update',
-    update,
-  ]] as const
+  const [name, action] of [
+    ['extract', extract],
+    ['merge', merge],
+    ['conflict', conflict],
+    ['translate', translateAuto],
+    [
+      'update',
+      update,
+    ],
+  ] as const
 ) {
   program.command(name).action(async () => {
     const config = await loadConfig();
