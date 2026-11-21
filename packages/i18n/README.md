@@ -17,6 +17,14 @@ t.text(greeting, { name: 'Ada' });
 
 `t.msg` is inert and safe at module scope. `t.text` returns a string; `t.jsx` returns JSX synchronously. Initialize before rendering. Persistence is opt-in.
 
-The default runtime uses cached `intl-messageformat`. Set `compiled: true` in your CLI configuration and add `@fluentic/i18n/plugin/{vite,rollup,esbuild,webpack,babel}` to compile messages. The plugin rewrites universal imports to `/compiled`, which interprets compact messages without an ICU parser. Auto/manual files stay unchanged; compiled merged catalogs start with `{"compiled":true}` followed by `[hash, compactMessage]` rows.
+For a fine-grained React update boundary, wrap one element whose string props use `t.text`:
+
+```tsx
+t.jsx(() => <input placeholder={t.text('Search')} />);
+```
+
+Only that wrapper reruns when the language changes. Use `I18nState.use()` instead when rerendering the whole component is more convenient.
+
+The default runtime uses cached `intl-messageformat`. Install the separate Node-only `@fluentic/i18n-compiler` package, set `compiled: true` or `compiled: { hashLength: 8 }` for the CLI, and add its `/vite`, `/rollup`, `/esbuild`, `/webpack`, `/babel`, or `/nextjs` integration. Adding a compiler integration always compiles source; its only compilation option is `hashLength`, which defaults to the value in shared CLI config. Compiled merged catalogs start with `{"compiled":true}` followed by short base64url-keyed compact messages.
 
 See [platforms](../../docs/docs/runtime/platforms.md), [compiler](../../docs/docs/runtime/compilation.md), [API](../../docs/docs/api.md), and the projects under `examples/`.

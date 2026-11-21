@@ -1,0 +1,157 @@
+# Mark user-facing text with Fluentic
+
+Use this file when converting an existing UI or reviewing whether text is translatable.
+
+## Decision table
+
+| Use case | API |
+| --- | --- |
+| Visible React text or rich content | `t.jsx(message, params?)` |
+| String prop or non-React string API | `t.text(message, params?)` |
+| Reusable message definition | `t.msg(message, schema?)` |
+| One element with reactive translated string props | `t.jsx(() => element)` |
+| Many reactive `t.text()` values in one component | `I18nState.use()` |
+| Same source words with different meaning | `t.context(name)` |
+| Translator instruction | `t.note(text)` |
+| Structured JSON metadata | `t.meta(value)` |
+
+Import without aliasing:
+
+```ts
+import { t } from '@fluentic/i18n';
+```
+
+## What to translate
+
+Translate text a product user reads or hears: headings, body copy, navigation, buttons, links, form labels, placeholders, help text, validation errors, dialogs, toasts, loading states, empty states, error states, `title`, `alt`, and accessibility labels.
+
+Do not translate user-generated content, server-returned content already localized by its owner, identifiers, routes, URLs, file paths, CSS classes, enum wire values, analytics event names, code, or developer-only logs.
+
+## React content
+
+```tsx
+<h1>{t.jsx('Account settings')}</h1>
+<button>{t.jsx('Save changes')}</button>
+```
+
+`t.jsx(message)` owns its language subscription.
+
+## String props: whole component
+
+```tsx
+import { I18nState } from '@fluentic/i18n-web';
+
+function SearchPanel() {
+  I18nState.use();
+  return (
+    <section>
+      <input
+        placeholder={t.text('Search projects')}
+        aria-label={t.text('Search projects')}
+      />
+      <button title={t.text('Clear search')}>{t.text('Clear')}</button>
+    </section>
+  );
+}
+```
+
+Use this when several values depend on language or the component also needs i18n state.
+
+## String props: one-element escape hatch
+
+```tsx
+function SearchField() {
+  return t.jsx(() => (
+    <input
+      placeholder={t.text('Search projects')}
+      aria-label={t.text('Search projects')}
+    />
+  ));
+}
+```
+
+Only the wrapper reruns on language changes. The callback must return one React element. Keep hooks in the parent and capture their values; never call hooks inside the callback.
+
+## Params, plurals, and reusable messages
+
+Use ICU params, never concatenation:
+
+```tsx
+t.jsx('Welcome back, {name}!', { name });
+
+t.jsx(
+  '{count, plural, =0 {No messages} one {# message} other {# messages}}',
+  { count },
+);
+```
+
+Declare reusable param types once:
+
+```ts
+const welcome = t.msg('Welcome back, {name}!', { name: String });
+t.text(welcome, { name: 'Ada' });
+t.jsx(welcome, { name: 'Ada' });
+```
+
+Schema markers are `String`, `Number`, `Boolean`, and `Date`. Render calls receive real values, not constructors.
+
+`t.params(object)` returns the same param object, or `{}` for nullish input. It is an optional typing/composition helper, not a translation marker.
+
+## Context, notes, and metadata
+
+Source text is the default identity. Add context only when identical wording has a different meaning:
+
+```tsx
+t.context('navigation').jsx('Home');
+t.context('property-type').jsx('Home');
+```
+
+Chain translator guidance and JSON metadata:
+
+```tsx
+t.context('checkout')
+  .note('Primary action after reviewing the order')
+  .meta({ screen: 'checkout', priority: 'high' })
+  .jsx('Continue');
+```
+
+Context contributes to identity. Notes accumulate. The last metadata value replaces earlier metadata.
+
+## Rich content
+
+```tsx
+t.jsx('Read the <link>documentation</link>.', {
+  link: t.tag((children) => <a href='/docs'>{children}</a>),
+});
+```
+
+Keep the entire sentence in one message so translators can reorder tagged content.
+
+## Static extraction rules
+
+Good:
+
+```ts
+t.text('Saved successfully');
+const saved = t.msg('Saved successfully');
+```
+
+Bad:
+
+```ts
+t.text(serverValue);
+t.text(`Hello ${name}`);
+const translate = t;
+translate.text('Hidden from extraction');
+```
+
+For dynamic choices, define static descriptors:
+
+```ts
+const statuses = {
+  active: t.msg('Active'),
+  paused: t.msg('Paused'),
+} as const;
+
+t.jsx(statuses[status]);
+```

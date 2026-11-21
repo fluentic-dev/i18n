@@ -14,6 +14,7 @@ const rich: ReactElement = t.jsx('Read <link>the guide</link>', {
   link: t.tag((chunks) => <a href='/guide'>{chunks}</a>),
 });
 const computed: ReactElement = t.jsx(shared, { name: ({ languageId }) => languageId === 'fr' ? 'Amélie' : 'Ada' });
+const reactiveElement: ReactElement = t.jsx(() => <input placeholder={t.text('Something')} />);
 const text: string = t.try(t.text, shared, { name: 'Ada' });
 const content: string | ReactElement = t.try(t.jsx, shared, { name: 'Ada' });
 const unchanged: number = t.try(t.text, 42);
@@ -29,6 +30,7 @@ export function Example() {
       {scoped}
       {rich}
       {computed}
+      {reactiveElement}
       {text}
       {content}
       {unchanged}

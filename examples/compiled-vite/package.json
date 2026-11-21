@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "i18n:update": "fluentic-i18n --config i18n.config.ts update"
   },
   "dependencies": {
     "@fluentic/i18n": "workspace:*",
@@ -13,11 +14,12 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "vite": "^7.0.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "^5.9.3",
+    "@fluentic/i18n-cli": "workspace:*",
+    "@fluentic/i18n-compiler": "workspace:*",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.0.0",
-    "@fluentic/i18n-cli": "workspace:*"
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.0.0"
   }
 }

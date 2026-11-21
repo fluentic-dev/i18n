@@ -1,17 +1,12 @@
 import 'server-only';
 import requestConfig from '@fluentic/i18n-nextjs/request';
-import {
-  createI18nManager,
-  type I18nSnapshot,
-  type ManagedI18n,
-  type PartsRenderer,
-  setRuntimeResolver,
-  withRuntime,
-} from '@fluentic/i18n/adapter';
+import { createI18nManager, type ManagedI18n, type PartsRenderer, setRuntimeResolver } from '@fluentic/i18n/adapter';
+import { getSnapshot, type I18nSnapshot } from '@fluentic/i18n/hydration';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import React, { cache } from 'react';
 import { I18nProvider as ClientProvider } from './client';
 import type { RequestConfig } from './config';
+import type { LanguageChangeHandler, LanguageChangeOptions, NextI18nManager } from './language';
 export { defineRequestConfig } from './config';
 export type { RequestConfig, RequestConfigFactory } from './config';
 const explicitScope = new AsyncLocalStorage<ManagedI18n>();
@@ -39,15 +34,28 @@ const getRequestManaged = cache(async () => initialize(getManaged(), await reque
 /** Await in the execution path that uses synchronous t.text; layouts do not order siblings. */
 export async function ready(): Promise<I18nSnapshot> {
   const current = explicitScope.getStore() ?? await getRequestManaged();
-  return current.manager.getSnapshot();
+  return getSnapshot(current);
 }
 export async function resolveI18n(config: RequestConfig): Promise<I18nSnapshot> {
-  return (await initialize(createServerManaged(), config)).manager.getSnapshot();
+  return getSnapshot(await initialize(createServerManaged(), config));
 }
 /** Route handlers, server actions: isolate the entire async operation explicitly. */
-export async function runWithI18n<T>(config: RequestConfig, fn: () => T | Promise<T>): Promise<T> {
+export async function runWithI18n<T>(config: RequestConfig, fn: () => T): Promise<Awaited<T>> {
   const managed = await initialize(createServerManaged(), config);
-  return explicitScope.run(managed, fn);
+  return await explicitScope.run(managed, fn);
+}
+
+/** Wrap any server function with the application request config and an isolated i18n scope. */
+export function i18nFn<Arguments extends unknown[], Result>(
+  fn: (...args: Arguments) => Result,
+): (...args: Arguments) => Promise<Awaited<Result>> {
+  const wrapped = async (...args: Arguments) => {
+    const result = await runWithI18n(await requestConfig(), () => fn(...args));
+
+    return result;
+  };
+
+  return wrapped as (...args: Arguments) => Promise<Awaited<Result>>;
 }
 function ServerMessage({ render }: { render: PartsRenderer; }) {
   const runtime = (explicitScope.getStore() ?? getManaged()).runtime;
@@ -64,7 +72,7 @@ export async function I18nProvider({ children, snapshot }: { children?: React.Re
   return React.createElement(ClientProvider, { snapshot: snapshot ?? await ready() }, children);
 }
 // Resolve at invocation time, never capture a request in a module-level singleton.
-export const I18nManager: ManagedI18n['manager'] = new Proxy({} as ManagedI18n['manager'], {
+const requestManager = new Proxy({} as ManagedI18n['manager'], {
   get(_target, key: keyof ManagedI18n['manager']) {
     return (...args: unknown[]) => {
       const manager = (explicitScope.getStore() ?? getManaged()).manager;
@@ -72,16 +80,22 @@ export const I18nManager: ManagedI18n['manager'] = new Proxy({} as ManagedI18n['
     };
   },
 });
+export const I18nManager: NextI18nManager = {
+  setLanguageId<LanguageId extends string>(
+    languageId: LanguageId,
+    handler: LanguageChangeHandler<LanguageId>,
+    options?: LanguageChangeOptions,
+  ) {
+    if (!handler) throw new Error('[i18n] Next.js language changes require a URL or cookie language handler');
+
+    return handler(languageId, options);
+  },
+};
 export const I18nState = {
   get: () => (explicitScope.getStore() ?? getManaged()).state.get(),
   subscribe: (_listener: () => void) => () => {},
   use: () => (explicitScope.getStore() ?? getManaged()).state.get(),
 };
-export function useI18nRuntime() {
-  return (explicitScope.getStore() ?? getManaged()).runtime;
-}
-export function useI18nRenderer<F extends (...args: any[]) => any>(renderer: F): F {
-  const runtime = useI18nRuntime();
-  return ((...args: Parameters<F>) => withRuntime(runtime, () => renderer(...args))) as F;
-}
 export { createI18nManager, defineTranslationLoader } from '@fluentic/i18n/adapter';
+export { defineLanguages } from './language';
+export type { LanguageChangeHandler, LanguageChangeOptions, LanguageDefinition, NextI18nManager } from './language';

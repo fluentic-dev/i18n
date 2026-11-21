@@ -1,4 +1,4 @@
-import { compileCatalog } from '@fluentic/i18n/compiler';
+import { compileCatalog } from '@fluentic/i18n-compiler';
 import { mkdir, writeFile } from 'node:fs/promises';
 await mkdir('dist', { recursive: true });
 await writeFile(
@@ -7,7 +7,7 @@ await writeFile(
     JSON.stringify(compileCatalog([{ context: 'account', source: 'Hello {name}', translation: 'Bonjour {name}' }])),
 );
 import { transformFileAsync } from '@babel/core';
-import fluentic from '@fluentic/i18n/plugin/babel';
+import fluentic from '@fluentic/i18n-compiler/babel';
 const result = await transformFileAsync('main.js', {
   plugins: [[fluentic, {}]],
   sourceMaps: true,

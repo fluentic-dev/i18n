@@ -6,5 +6,8 @@ export default defineConfig({
   catalogFormat: 'json',
   compiled: true,
   languages: { source: 'en', targets: ['fr'] },
-  files: { includes: ['App.tsx'] },
+  files: {
+    includes: ['**/*.{ts,tsx,js,jsx}'],
+    excludes: ['dist*/**'],
+  },
 });

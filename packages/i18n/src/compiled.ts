@@ -3,6 +3,7 @@ import { isMessageDescriptor } from './core/types';
 import type {
   DescriptorRenderArgs,
   I18nJsxOutput,
+  I18nTagElement,
   I18nTagValue,
   MessageDescriptor,
   MessageParams,
@@ -12,7 +13,7 @@ import type {
 import type { CompactMessage } from './shared/compact';
 import { createFormatting } from './shared/formatting';
 import { interpret } from './shared/interpreter';
-import { createTagHandler, getRuntime, noTranslate } from './shared/runtime';
+import { createTagHandler, getRuntime, noTranslate, renderJsxCallback } from './shared/runtime';
 
 export type CompiledPayload = readonly [id: string, fallback: CompactMessage];
 
@@ -25,6 +26,7 @@ export type CompiledTextRenderer = {
 };
 
 export type CompiledJsxRenderer = {
+  (render: () => I18nTagElement): I18nJsxOutput;
   (message: CompiledPayload, params?: MessageParams): I18nJsxOutput;
   <Text extends string, Schema extends MessageSchema | undefined>(
     message: MessageDescriptor<Text, Schema>,
@@ -87,7 +89,12 @@ export const t = {
   text(message: CompiledPayload | MessageDescriptor<string, MessageSchema | undefined>, params?: MessageParams) {
     return formatting.getText(options(message, params));
   },
-  jsx(message: CompiledPayload | MessageDescriptor<string, MessageSchema | undefined>, params?: MessageParams) {
+  jsx(
+    message: CompiledPayload | MessageDescriptor<string, MessageSchema | undefined> | (() => I18nTagElement),
+    params?: MessageParams,
+  ) {
+    if (typeof message === 'function') return renderJsxCallback(message);
+
     return formatting.getJsx(options(message, params));
   },
   clone(message: MessageDescriptor) {

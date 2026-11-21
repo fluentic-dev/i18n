@@ -1,0 +1,80 @@
+# Fluentic build-time compiler
+
+Compilation is optional. It removes runtime ICU parsing by converting static messages and catalogs into compact instructions.
+
+## Enable
+
+CLI config:
+
+```ts
+export default defineConfig({
+  compiled: true,
+  catalogFormat: 'jsonl',
+  languages: { source: 'en', targets: ['fr'] },
+  files: { includes: ['src/**/*.{ts,tsx}'] },
+});
+```
+
+Vite config:
+
+```ts
+plugins: [
+  fluentic({ config: './i18n.config.ts' }),
+  react(),
+]
+```
+
+Passing `config` keeps the compiler hash length aligned with CLI catalog generation. A direct `hashLength` option overrides it.
+
+## Transformation
+
+Conceptually:
+
+```tsx
+t.context('account').jsx('Hello {name}', { name });
+```
+
+becomes a compiled ID plus compact source fallback. Catalog rows use the same ID plus compact translated instructions. The compiled runtime performs lookup and uses native `Intl` formatting; it does not parse ICU strings.
+
+## Static rules
+
+- Keep normal source imports: `import {t} from '@fluentic/i18n'`.
+- Static literals, immutable local aliases, contexts, notes, metadata, and descriptors are supported.
+- Do not export scoped translator objects. Export `t.msg()` descriptors instead.
+- Do not pass dynamic ICU source strings to compiled `t.text()` or `t.jsx()`.
+- Dependencies are excluded by default. Compile shared libraries before publishing or deliberately enable source-dependency compilation.
+
+For dynamic choices, use static descriptors:
+
+```ts
+const statuses = {
+  active: t.msg('Active'),
+  paused: t.msg('Paused'),
+};
+t.jsx(statuses[status]);
+```
+
+## Callback boundary
+
+The compiler preserves the outer boundary and compiles nested messages:
+
+```tsx
+t.jsx(() => (
+  <input placeholder={t.text('Search')} />
+));
+```
+
+The callback itself is not a message. In Next/client binding mode, nested `t.text()` does not inject a whole-component subscription; the callback wrapper remains the sole subscriber.
+
+## Deployment rule
+
+Compiled application source and compiled catalogs must be rebuilt and deployed together. Changing `compiled`, `hashLength`, or compiler/runtime versions requires regenerating catalogs and rebuilding the app.
+
+Compiler integrations:
+
+- `@fluentic/i18n-compiler/vite`
+- `@fluentic/i18n-compiler/rollup`
+- `@fluentic/i18n-compiler/esbuild`
+- `@fluentic/i18n-compiler/webpack`
+- `@fluentic/i18n-compiler/babel`
+- `@fluentic/i18n-compiler/nextjs`

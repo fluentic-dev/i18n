@@ -1,0 +1,145 @@
+# Set up Fluentic in a React/Vite SPA
+
+## Install
+
+```sh
+pnpm add @fluentic/i18n@beta @fluentic/i18n-web@beta
+pnpm add -D @fluentic/i18n-cli@beta @fluentic/i18n-compiler@beta
+```
+
+For unpublished/local packages, use the project-provided beta.2 tarballs and package-manager overrides instead of registry versions.
+
+## CLI configuration
+
+Create `i18n.config.ts`:
+
+```ts
+import { defineConfig } from '@fluentic/i18n-cli';
+
+export default defineConfig({
+  compiled: true,
+  catalogFormat: 'jsonl',
+  output: 'i18n',
+  languages: { source: 'en', targets: ['fr'] },
+  files: {
+    includes: ['src/**/*.{ts,tsx,js,jsx}'],
+    excludes: ['**/*.test.*', '**/*.spec.*', '**/dist/**'],
+  },
+});
+```
+
+Add scripts:
+
+```json
+{
+  "scripts": {
+    "i18n:extract": "fluentic-i18n --config i18n.config.ts extract",
+    "i18n:merge": "fluentic-i18n --config i18n.config.ts merge",
+    "i18n:update": "fluentic-i18n --config i18n.config.ts update"
+  }
+}
+```
+
+Ignore only the disposable extraction cache:
+
+```gitignore
+/i18n/cache.local/
+```
+
+Commit authoring files and runtime catalogs unless deployment generates them elsewhere.
+
+## Vite compiler
+
+Merge Fluentic before React in the existing config:
+
+```ts
+import fluentic from '@fluentic/i18n-compiler/vite';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  plugins: [
+    fluentic({ config: './i18n.config.ts' }),
+    react(),
+  ],
+});
+```
+
+Preserve all existing Vite options and plugins.
+
+## TypeScript
+
+For JSON manifests and Vite raw catalog imports:
+
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "types": ["vite/client"]
+  }
+}
+```
+
+## Runtime
+
+Create `src/i18n.ts`:
+
+```ts
+import { defineTranslationLoader } from '@fluentic/i18n';
+import {
+  createLocalStorage,
+  createTranslationCacheLoader,
+  I18nManager,
+} from '@fluentic/i18n-web';
+
+const loader = defineTranslationLoader({
+  en: [],
+  fr: () => import('../i18n/translations/fr/merged.jsonl?raw'),
+});
+
+export const translationCache = createTranslationCacheLoader(loader, {
+  hash: () => import('../i18n/translations/hash.json'),
+  storageKey: 'my-app:i18n:catalogs',
+});
+
+I18nManager.configure({ languageId: 'en', fallbackLanguageId: 'en' });
+I18nManager.setStorage(createLocalStorage());
+I18nManager.setTranslationLoader(translationCache.loader);
+
+export const initializeI18n = () => I18nManager.init();
+```
+
+Use an explicit loader entry for each language so Vite can discover lazy modules.
+
+## Initialize before mounting
+
+```tsx
+import { createRoot } from 'react-dom/client';
+import { App } from './App';
+import { initializeI18n } from './i18n';
+
+const container = document.getElementById('root');
+if (!container) throw new Error('Missing React root');
+
+initializeI18n().then(
+  () => createRoot(container).render(<App />),
+  (error) => {
+    console.error('Unable to initialize i18n', error);
+    container.textContent = 'Unable to load the application.';
+  },
+);
+```
+
+Preserve existing StrictMode, router, providers, and error boundaries.
+
+## Validate
+
+```sh
+pnpm i18n:extract
+# Fill i18n/translations/fr/manual.jsonl
+pnpm i18n:merge
+pnpm typecheck
+pnpm test
+pnpm build
+```

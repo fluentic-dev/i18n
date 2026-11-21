@@ -12,7 +12,7 @@ Use universal `t` in your components and shared packages. The native adapter sup
 
 ```sh
 pnpm add @fluentic/i18n @fluentic/i18n-rn
-pnpm add -D @fluentic/i18n-cli
+pnpm add -D @fluentic/i18n-cli @fluentic/i18n-compiler
 ```
 
 Keep the React and React Native versions supported by your Expo SDK or native app. Fluentic does not install AsyncStorage for you.
@@ -26,7 +26,7 @@ export default defineConfig({
   compiled: true,
   catalogFormat: 'json',
   languages: { source: 'en', targets: ['fr'] },
-  files: { includes: ['App.tsx', 'src/**/*.{ts,tsx}'] },
+  files: { includes: ['**/*.{ts,tsx,js,jsx}'], excludes: ['dist*/**'] },
 });
 ```
 
@@ -35,11 +35,11 @@ In an Expo app, keep the Expo preset and add the Fluentic Babel plugin:
 ```js title="babel.config.js"
 module.exports = {
   presets: ['babel-preset-expo'],
-  plugins: ['@fluentic/i18n-rn/plugin/babel'],
+  plugins: ['@fluentic/i18n-compiler/babel'],
 };
 ```
 
-For bare React Native, keep your existing React Native preset and add the same plugin. Preserve any ordering required by other native Babel plugins. Restart Metro with a cleared cache after changing Babel configuration (`npx expo start --clear` for Expo). The plugin reads `i18n.config.ts` from the app working directory and supports Metro's pre-parsed AST path.
+For bare React Native, keep your existing React Native preset and add the same plugin. Preserve any ordering required by other native Babel plugins. Restart Metro with a cleared cache after changing Babel configuration (`npx expo start --clear` for Expo). Pass the optional Babel plugin `config` path when sharing `compiled.hashLength`, or pass `hashLength` directly. The plugin supports Metro's pre-parsed AST path.
 
 Keep source imports as `@fluentic/i18n`; the plugin rewrites them to `/compiled`. A same-file alias such as `const c = t.context('account')` is supported. See [compiler rules](./compilation#same-file-tracing).
 
@@ -116,7 +116,9 @@ export default function App() {
 }
 ```
 
-`t.msg()` is safe outside components. Put textual `t.jsx()` output inside a native `Text` element. `t.jsx()` subscribes automatically; `I18nState.use()` also rerenders the button's synchronous `t.text()` title. Use `{break}` for an explicit line break: `t.text()` returns a newline, web JSX renders `<br>`, and native JSX renders a newline inside `Text`. The adapter configures this for both the default runtime and native providers. `{break}` is reserved and does not need to be passed in `params`. Literal newlines and surrounding whitespace are preserved. Native rich tags should return native elements, such as `t.tag(<Text style={{fontWeight: 'bold'}} />)`.
+`t.msg()` is safe outside components. Put textual `t.jsx()` output inside a native `Text` element. `t.jsx()` subscribes automatically; `I18nState.use()` also rerenders the button's synchronous `t.text()` title. The reserved `{break}` param renders a newline inside native `Text` and does not need to be passed in `params`. Source line wrapping is normalized to spaces; see [explicit line breaks](../learn/formatting#add-an-explicit-line-break). Native rich tags should return native elements, such as `t.tag(<Text style={{fontWeight: 'bold'}} />)`.
+
+For a single native element with translated string props, `t.jsx(() => element)` provides the same fine-grained boundary as web React. The callback must return one React element and should not contain hooks.
 
 ## Persist the selected language
 
@@ -138,6 +140,6 @@ pnpm --filter @example/rn build
 pnpm --filter @example/rn dev
 ```
 
-The Expo example imports a CLI-generated JSON catalog, uses `{break}` in a translated message, and includes a language switcher. Its workspace Metro configuration resolves React to the app's copy; an ordinary single-app project can keep its existing Metro configuration.
+The Expo example imports a CLI-generated JSON catalog, uses `{break}` in a translated message, and includes a language switcher. Its Metro configuration uses Expo's default configuration.
 
 See also [platform adapters](./platforms), [loading and fallbacks](./loading), and [compiler setup](./compilation).

@@ -1,8 +1,7 @@
 import { defineRequestConfig } from '@fluentic/i18n-nextjs/config';
-import { cookies } from 'next/headers';
-import french from './fr.jsonl';
+import french from './data/translations/fr/merged.mjs';
+import { languageServer } from './language.server';
 export default defineRequestConfig(async () => {
-  // Locale selection belongs to this app. The adapter does not inspect URLs.
-  const languageId = (await cookies()).get('language')?.value === 'fr' ? 'fr' : 'en';
+  const languageId = await languageServer.getLanguageId();
   return { languageId, translationLoader: ({ languageId }) => languageId === 'fr' ? french : [] };
 });

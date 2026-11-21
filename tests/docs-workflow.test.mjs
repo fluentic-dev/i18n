@@ -36,15 +36,20 @@ test('the documented CLI workflow loads TypeScript config and produces usable ca
         stdio: 'pipe',
       });
     cli('update');
-    const extracted = JSON.parse(await readFile(path.join(directory, 'i18n/data/cache/extracted.json'), 'utf8'));
-    assert.equal(extracted.length, 3);
-    assert.equal(extracted.find((item) => item.source === 'Continue').context, 'checkout');
+    const cacheRoot = path.join(directory, 'i18n/data/cache.local');
+    const extracted = JSON.parse(await readFile(path.join(cacheRoot, 'extract.json'), 'utf8'));
+    const cachedMessages = Object.values(extracted.messages).flat();
+    assert.equal(cachedMessages.length, 3);
+    assert.equal(cachedMessages.find((item) => item.source === 'Continue').context, 'checkout');
+    assert.equal(Object.keys(JSON.parse(await readFile(path.join(cacheRoot, 'hashes.json'), 'utf8')).hashes).length, 1);
     const manualPath = path.join(directory, 'i18n/data/translations/fr/manual.jsonl');
     const manual = (await readFile(manualPath, 'utf8')).trim().split('\n').map(JSON.parse);
-    manual.find((item) => item.source === 'Continue').translation = 'Continuer';
-    manual.find((item) => item.source === 'Welcome back!').translation = 'Bon retour !';
-    manual.find((item) => item.source === 'Welcome back, {name}!').translation = 'Bon retour, {name} !';
+    const source = (row) => row.length === 2 ? row[0] : row[1];
+    manual.find((item) => source(item) === 'Continue')[2] = 'Continuer';
+    manual.find((item) => source(item) === 'Welcome back!')[1] = 'Bon retour !';
+    manual.find((item) => source(item) === 'Welcome back, {name}!')[1] = 'Bon retour, {name} !';
     await writeFile(manualPath, manual.map((item) => JSON.stringify(item)).join('\n') + '\n');
+    await rm(cacheRoot, { recursive: true, force: true });
     cli('merge');
     cli('update');
     const jsonl = await readFile(path.join(directory, 'i18n/data/translations/fr/merged.jsonl'), 'utf8');
@@ -70,6 +75,47 @@ test('the documented CLI workflow loads TypeScript config and produces usable ca
   }
 });
 
+test('extraction caches by file and synchronizes authoring layers', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'fluentic-cache-'));
+  try {
+    const { defineConfig, extract } = await import('../packages/cli/dist/index.mjs');
+    const sourcePath = path.join(directory, 'src/messages.ts');
+    await mkdir(path.dirname(sourcePath), { recursive: true });
+    await writeFile(sourcePath, `import { t } from '@fluentic/i18n'; t.text('Hello');`);
+    const config = defineConfig({
+      root: directory,
+      output: path.join(directory, 'data'),
+      languages: { source: 'en', targets: ['fr'] },
+      files: { includes: ['src/*.ts'] },
+    });
+    const processed = [];
+    const report = (event) => {
+      if (event.type === 'file:processed') processed.push(event.file);
+    };
+    await extract(config, report);
+    assert.deepEqual(processed, ['src/messages.ts']);
+    processed.length = 0;
+    await extract(config, report);
+    assert.deepEqual(processed, []);
+
+    await writeFile(sourcePath, `import { t } from '@fluentic/i18n'; t.text('Hello'); t.text('Save');`);
+    await extract(config, report);
+    assert.deepEqual(processed, ['src/messages.ts']);
+    const manualPath = path.join(directory, 'data/translations/fr/manual.jsonl');
+    const manual = (await readFile(manualPath, 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.deepEqual(manual.map((item) => item[0]), ['Hello', 'Save']);
+    const meta = (await readFile(path.join(directory, 'data/translations/meta.jsonl'), 'utf8')).trim().split('\n')
+      .map(JSON.parse);
+    assert.deepEqual(meta.map((item) => item[0]), ['Hello', 'Save']);
+
+    await rm(sourcePath);
+    await extract(config);
+    assert.equal(await readFile(manualPath, 'utf8'), '');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('compiled CLI keeps review files readable and converter exports retain source identity', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'fluentic-compiled-'));
   try {
@@ -81,7 +127,7 @@ test('compiled CLI keeps review files readable and converter exports retain sour
     );
     let exported;
     const config = defineConfig({
-      compiled: true,
+      compiled: { hashLength: 6 },
       root: directory,
       output: path.join(directory, 'data'),
       languages: { source: 'en', targets: ['fr'] },
@@ -98,19 +144,20 @@ test('compiled CLI keeps review files readable and converter exports retain sour
     await merge(config);
     const manualPath = path.join(directory, 'data/translations/fr/manual.jsonl');
     const manual = JSON.parse((await readFile(manualPath, 'utf8')).trim());
-    assert.equal(manual.id, 'account\0Hello {name}');
-    manual.translation = 'Bonjour {name}';
+    assert.deepEqual(manual, ['account', 'Hello {name}', '']);
+    manual[2] = 'Bonjour {name}';
     await writeFile(manualPath, JSON.stringify(manual) + '\n');
     await merge(config);
     const [header, row] = (await readFile(path.join(directory, 'data/translations/fr/merged.jsonl'), 'utf8')).trim()
       .split('\n').map(JSON.parse);
     assert.deepEqual(header, { compiled: true });
     assert.equal(row.length, 2);
-    assert.match(row[0], /^[a-f0-9]{24}$/);
+    assert.match(row[0], /^[A-Za-z0-9_-]{6}$/);
     assert.ok(Array.isArray(row[1]));
-    assert.equal(JSON.parse((await readFile(manualPath, 'utf8')).trim()).id, manual.id);
+    assert.deepEqual(JSON.parse((await readFile(manualPath, 'utf8')).trim()), manual);
     await exportTranslations(config, 'review');
-    assert.equal(exported[0].id, manual.id);
+    assert.equal(exported[0].context, 'account');
+    assert.equal(exported[0].source, 'Hello {name}');
     assert.equal(exported[0].translation, 'Bonjour {name}');
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -121,8 +168,6 @@ test('automatic translation selects the first provider supporting each language 
   const directory = await mkdtemp(path.join(tmpdir(), 'fluentic-translators-'));
   try {
     const {
-      createDeepLTranslator,
-      createGoogleTranslator,
       defineConfig,
       defineTranslator,
       extract,
@@ -130,6 +175,9 @@ test('automatic translation selects the first provider supporting each language 
       translateAuto,
     } = await import(
       '../packages/cli/dist/index.mjs'
+    );
+    const { createDeepLTranslator, createGoogleTranslator } = await import(
+      '../packages/cli/dist/translators.mjs'
     );
     const deepL = createDeepLTranslator({ apiKey: 'not-used-by-support' });
     const google = createGoogleTranslator({ apiKey: 'not-used-by-support' });

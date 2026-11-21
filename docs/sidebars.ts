@@ -40,7 +40,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Reference',
       collapsible: false,
-      items: ['learn/message-workflow', 'api'],
+      items: ['releases/beta-2', 'learn/message-workflow', 'api'],
     },
   ],
 };

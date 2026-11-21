@@ -1,4 +1,25 @@
 {
   "mode": "pre",
-  "tag": "beta"
+  "tag": "beta",
+  "initialVersions": {
+    "@fluentic/i18n": "0.0.0",
+    "@fluentic/i18n-cli": "0.0.0",
+    "@fluentic/i18n-compiler": "0.0.0",
+    "@fluentic/i18n-nextjs": "0.0.0",
+    "@fluentic/i18n-rn": "0.0.0",
+    "@fluentic/i18n-web": "0.0.0",
+    "@docs/app": "0.0.0",
+    "@example/i18n": "0.0.0"
+  },
+  "changesets": [
+    "beta-two",
+    "first-public-beta",
+    "builtin-exchange-formats",
+    "cli-friendly-reporting",
+    "filter-translator",
+    "handoff",
+    "refresh-handoff-input",
+    "translation-cache-storage-mode",
+    "translator-subpath"
+  ]
 }

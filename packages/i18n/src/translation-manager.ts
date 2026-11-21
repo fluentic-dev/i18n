@@ -6,7 +6,12 @@ export { normalizeCatalog } from './translation';
 
 export type TranslationLoaderArgs = { languageId: LanguageId; };
 export type TranslationLookupArgs = { languageId: LanguageId; context: MessageContext | null; message: string; };
-export type TranslationLoader = (args: TranslationLoaderArgs) => TranslationData | Promise<TranslationData>;
+export type TranslationLoader = ((args: TranslationLoaderArgs) => TranslationData | Promise<TranslationData>) & {
+  /** Called before a manager starts loading a selected locale and its fallbacks. */
+  onLanguageLoading?: () => void;
+  /** Called only after the manager successfully commits a language selection, including in-memory cache hits. */
+  onLanguageSelected?: (languageId: LanguageId) => void;
+};
 export type TranslationModule = { default: TranslationData; };
 export type TranslationSource = TranslationData | TranslationModule;
 
@@ -78,5 +83,13 @@ export function createTranslationManager() {
     return catalog?.[id] ?? catalog?.[args.message] ?? null;
   };
 
-  return { catalogs, compiledCatalogs, setTranslationLoader, loadTranslations, getTranslation };
+  return {
+    catalogs,
+    compiledCatalogs,
+    setTranslationLoader,
+    loadTranslations,
+    getTranslation,
+    languageLoading: () => loader?.onLanguageLoading?.(),
+    languageSelected: (languageId: string) => loader?.onLanguageSelected?.(languageId),
+  };
 }

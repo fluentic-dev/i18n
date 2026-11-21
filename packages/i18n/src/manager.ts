@@ -1,7 +1,8 @@
-import { createRuntime, defaultRuntime, type Formats, getFormats, type Runtime } from './shared/runtime';
+import { registerHydration } from './hydration-store';
+import { createRuntime, defaultRuntime, type Runtime } from './shared/runtime';
 import { createStateManager } from './state-manager';
 import { createStorageManager, type I18nStorage } from './storage-manager';
-import { type Catalog, createTranslationManager, type TranslationLoader } from './translation-manager';
+import { createTranslationManager, type TranslationLoader } from './translation-manager';
 
 export type { I18nStorage, StoredState } from './storage-manager';
 export { defineTranslationLoader } from './translation-manager';
@@ -11,14 +12,6 @@ export type StateData = { languageId: string; isLoading: boolean; ready: boolean
 export type I18nManagerOptions = { languageId: string; fallbackLanguageId?: string; };
 export type CreateI18nManagerOptions = { storage?: I18nStorage | null; runtime?: Runtime; };
 export type GetTranslationArgs = { languageId?: string; context?: string | null; message: string; };
-
-export type I18nSnapshot = {
-  languageId: string;
-  fallbackLanguageId?: string;
-  translations: Record<string, Catalog>;
-  formats?: Partial<Formats>;
-  compiledLanguages?: string[];
-};
 
 export function createI18nManager(options: CreateI18nManagerOptions = {}) {
   const runtime = options.runtime ?? createRuntime();
@@ -81,38 +74,6 @@ export function createI18nManager(options: CreateI18nManagerOptions = {}) {
     return null;
   };
 
-  /* snapshots */
-
-  const getSnapshot = (): I18nSnapshot => {
-    return {
-      languageId: runtime.languageId,
-      fallbackLanguageId,
-      translations: Object.fromEntries(
-        Object.entries(translations.catalogs).map(([id, catalog]) => [id, { ...catalog }]),
-      ),
-      formats: getFormats(runtime, runtime.languageId),
-      compiledLanguages: Object.keys(translations.compiledCatalogs).filter((id) => translations.compiledCatalogs[id]),
-    };
-  };
-
-  const hydrate = (snapshot: I18nSnapshot) => {
-    version++;
-
-    for (const id of Object.keys(translations.catalogs)) delete translations.catalogs[id];
-    for (const id of Object.keys(translations.compiledCatalogs)) delete translations.compiledCatalogs[id];
-    for (const [id, catalog] of Object.entries(snapshot.translations)) {
-      translations.catalogs[id] = Object.assign(Object.create(null), catalog);
-    }
-
-    for (const id of snapshot.compiledLanguages ?? []) translations.compiledCatalogs[id] = true;
-
-    runtime.formats = snapshot.formats ?? {};
-    runtime.languageId = snapshot.languageId;
-    fallbackLanguageId = snapshot.fallbackLanguageId;
-    runtime.ready = true;
-    state.set({ languageId: snapshot.languageId, ready: true, isLoading: false });
-  };
-
   /* utils */
 
   const getLanguageIds = (languageId: string) => {
@@ -128,8 +89,10 @@ export function createI18nManager(options: CreateI18nManagerOptions = {}) {
     state.set({ isLoading: true });
 
     try {
+      translations.languageLoading();
       await Promise.all(getLanguageIds(languageId).map(translations.loadTranslations));
       if (version !== current) return false;
+      translations.languageSelected(languageId);
       runtime.languageId = languageId;
       runtime.ready = true;
       state.set({ languageId, ready: true, isLoading: false });
@@ -148,8 +111,6 @@ export function createI18nManager(options: CreateI18nManagerOptions = {}) {
     setLanguageId,
     getLanguageId,
     getTranslation,
-    getSnapshot,
-    hydrate,
   };
 
   runtime.translationGetter = (args) => {
@@ -165,7 +126,21 @@ export function createI18nManager(options: CreateI18nManagerOptions = {}) {
     return null;
   };
 
-  return { manager, state, runtime };
+  const managed = { manager, state, runtime };
+  registerHydration(managed, {
+    runtime,
+    state,
+    translations,
+    getFallbackLanguageId: () => fallbackLanguageId,
+    setFallbackLanguageId: (languageId) => {
+      fallbackLanguageId = languageId;
+    },
+    invalidate: () => {
+      version++;
+    },
+  });
+
+  return managed;
 }
 
 export type ManagedI18n = ReturnType<typeof createI18nManager>;

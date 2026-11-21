@@ -1,0 +1,69 @@
+# Fluentic i18n: LLM guide
+
+Fluentic i18n v0.1.0-beta.2 translates natural source messages without application-defined keys. React/Vite is the primary SPA path.
+
+## Load only what the task needs
+
+- Wrap or review user-facing text: https://fluenticstack.com/i18n/llms/messages.txt
+- Install and configure a React/Vite SPA: https://fluenticstack.com/i18n/llms/setup-vite.txt
+- React updates, language switching, and subscriptions: https://fluenticstack.com/i18n/llms/react-runtime.txt
+- Extract, translate, review, and merge catalogs: https://fluenticstack.com/i18n/llms/translation-flow.txt
+- Build-time compiler behavior and restrictions: https://fluenticstack.com/i18n/llms/compiler.txt
+- Complete minimal SPA example: https://fluenticstack.com/i18n/llms/react-vite-example.txt
+- Compact API reference: https://fluenticstack.com/i18n/llms/api.txt
+
+Human documentation: https://fluenticstack.com/i18n/docs/intro/
+
+## Rules for modifying application source
+
+1. Import the named `t` object from `@fluentic/i18n`. Do not rename or wrap it.
+2. Wrap user-facing UI copy, accessibility text, labels, placeholders, titles, validation errors, toasts, empty states, and loading/error messages.
+3. Do not translate user data, API content, IDs, URLs, CSS classes, analytics names, protocol strings, or developer-only logs.
+4. Keep source messages as static literals. Use ICU params instead of concatenation or JavaScript interpolation.
+5. Use `t.jsx(message, params?)` for translated React content. It updates itself.
+6. Use `t.text(message, params?)` when a string is required.
+7. When React renders `t.text()`, choose one subscription:
+   - `I18nState.use()` rerenders the whole component; use for convenience or many language-dependent values.
+   - `t.jsx(() => element)` reruns only one element callback; use as a performance escape hatch for translated string props.
+8. A `t.jsx(() => element)` callback must return one React element. Do not call hooks inside it. Nested messages are extracted and compiled normally.
+9. Use `t.msg()` for reusable messages and typed parameter schemas.
+10. Use `t.context()` when identical source wording has different meanings. Use `t.note()` for translator guidance and `t.meta()` for JSON metadata.
+
+## Core patterns
+
+```tsx
+import { t } from '@fluentic/i18n';
+
+// Reactive React content
+<button>{t.jsx('Save changes')}</button>
+
+// String prop; parent component must subscribe with I18nState.use()
+<input placeholder={t.text('Search projects')} />
+
+// Targeted string-prop boundary; parent does not rerender for language changes
+t.jsx(() => (
+  <input placeholder={t.text('Search projects')} />
+))
+
+// Reusable, typed message
+const greeting = t.msg('Welcome back, {name}!', { name: String });
+t.jsx(greeting, { name: user.name });
+
+// Same wording, different meaning, with translator guidance
+t.context('checkout')
+  .note('Primary payment action')
+  .meta({ screen: 'checkout' })
+  .jsx('Continue');
+```
+
+## Required validation after an i18n change
+
+```sh
+pnpm i18n:extract
+pnpm i18n:merge
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Never edit generated `merged.*` catalogs directly. Edit `manual.jsonl`, then run merge.

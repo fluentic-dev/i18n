@@ -128,6 +128,37 @@ test('text attributes and try values update through an explicit state subscripti
   });
 });
 
+test('t.jsx callback reruns translated text attributes without rerendering its parent', async () => {
+  await reset(({ languageId }) => languageId === 'fr' ? [record('Something', 'Quelque chose')] : []);
+  let parentRenders = 0;
+  let callbackRenders = 0;
+
+  function Form() {
+    parentRenders++;
+    return t.jsx(() => {
+      callbackRenders++;
+      return React.createElement('input', { placeholder: t.text('Something') });
+    });
+  }
+
+  let root;
+  await act(async () => {
+    root = create(React.createElement(Form));
+  });
+  assert.equal(root.toJSON().props.placeholder, 'Something');
+  assert.equal(parentRenders, 1);
+  assert.equal(callbackRenders, 1);
+
+  await act(async () => {
+    await I18nManager.setLanguageId('fr');
+  });
+  assert.equal(root.toJSON().props.placeholder, 'Quelque chose');
+  assert.equal(parentRenders, 1);
+  assert.equal(callbackRenders, 2);
+
+  await act(async () => root.unmount());
+});
+
 test('message schemas validate required runtime values', async () => {
   await reset(() => []);
   const count = t.msg('Count: {count}', { count: Number });
@@ -167,6 +198,7 @@ test('element tag shorthand preserves props and renders translated children', as
 test('isolated providers preserve language during SSR and snapshot replacement', async () => {
   const { I18nProvider, useI18nRenderer } = await import('../dist/react.js');
   const { createI18nManager } = await import('../dist/adapter.js');
+  const { getSnapshot, hydrate } = await import('../dist/hydration.js');
   const first = createI18nManager();
   first.manager.configure({ languageId: 'fr' });
   first.manager.setTranslationLoader(() => [record('Search', 'Rechercher')]);
@@ -181,15 +213,19 @@ test('isolated providers preserve language during SSR and snapshot replacement',
     return React.createElement('input', { title: text(descriptor) });
   }
   let root;
+  const hydratedFirst = createI18nManager();
+  hydrate(hydratedFirst, getSnapshot(first));
   await act(async () => {
     root = create(
-      React.createElement(I18nProvider, { snapshot: first.manager.getSnapshot() }, React.createElement(Input)),
+      React.createElement(I18nProvider, { instance: hydratedFirst }, React.createElement(Input)),
     );
   });
   assert.equal(root.toJSON().props.title, 'Rechercher');
+  const hydratedSecond = createI18nManager();
+  hydrate(hydratedSecond, getSnapshot(second));
   await act(async () => {
     root.update(
-      React.createElement(I18nProvider, { snapshot: second.manager.getSnapshot() }, React.createElement(Input)),
+      React.createElement(I18nProvider, { instance: hydratedSecond }, React.createElement(Input)),
     );
   });
   assert.equal(root.toJSON().props.title, 'Suchen');
@@ -200,9 +236,8 @@ test('{break} renders as text newline, web br, and native newline for both runti
   const { createI18nManager, defaultRuntime, setRuntimeResolver } = await import('../dist/adapter.js');
   const { installReactAdapter } = await import('../dist/react.js');
   const { t: compiled } = await import('../dist/compiled.js');
-  const { compileMessage, messageId } = await import('../dist/compiler.js');
   const source = 'First{break}Second';
-  const payload = [messageId(null, source), compileMessage(source)];
+  const payload = ['break-test', ['First', [0, 'break'], 'Second']];
   const web = createI18nManager();
   const native = createI18nManager();
   installReactAdapter(web.runtime);
@@ -234,4 +269,10 @@ test('{break} renders as text newline, web br, and native newline for both runti
   } finally {
     setRuntimeResolver(() => defaultRuntime);
   }
+});
+
+test('source and translation line wrapping render as spaces', async () => {
+  await reset(() => [record('First second', 'Premier\n  deuxième')]);
+  assert.equal(t.text(`\n    First\n    second\n  `), 'Premier deuxième');
+  assert.equal(t.text('First\nsecond{break}third'), 'First second\nthird');
 });

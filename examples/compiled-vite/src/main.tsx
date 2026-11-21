@@ -2,7 +2,7 @@ import { t } from '@fluentic/i18n';
 import { I18nManager, I18nState } from '@fluentic/i18n-web';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import french from './fr.jsonl';
+import french from '../i18n/data/translations/fr/merged.mjs';
 const c = t.context('account');
 const greeting = c.msg('Hello {name}', { name: String });
 I18nManager.configure({ languageId: 'fr' });

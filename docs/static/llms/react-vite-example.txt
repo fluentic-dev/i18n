@@ -1,0 +1,149 @@
+# Complete minimal React/Vite example
+
+Assumes source `en`, target `fr`, compiled JSONL catalogs, and `vite/client` types.
+
+## i18n.config.ts
+
+```ts
+import { defineConfig } from '@fluentic/i18n-cli';
+
+export default defineConfig({
+  compiled: true,
+  catalogFormat: 'jsonl',
+  output: 'i18n',
+  languages: { source: 'en', targets: ['fr'] },
+  files: { includes: ['src/**/*.{ts,tsx}'] },
+});
+```
+
+## vite.config.ts
+
+```ts
+import fluentic from '@fluentic/i18n-compiler/vite';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  plugins: [fluentic({ config: './i18n.config.ts' }), react()],
+});
+```
+
+## src/i18n.ts
+
+```ts
+import { defineTranslationLoader } from '@fluentic/i18n';
+import {
+  createLocalStorage,
+  createTranslationCacheLoader,
+  I18nManager,
+} from '@fluentic/i18n-web';
+
+export const languages = [
+  { id: 'en', label: 'English' },
+  { id: 'fr', label: 'Français' },
+] as const;
+
+const loader = defineTranslationLoader({
+  en: [],
+  fr: () => import('../i18n/translations/fr/merged.jsonl?raw'),
+});
+
+export const cache = createTranslationCacheLoader(loader, {
+  hash: () => import('../i18n/translations/hash.json'),
+  storageKey: 'example:i18n:catalogs',
+});
+
+I18nManager.configure({ languageId: 'en', fallbackLanguageId: 'en' });
+I18nManager.setStorage(createLocalStorage());
+I18nManager.setTranslationLoader(cache.loader);
+
+export const initializeI18n = () => I18nManager.init();
+```
+
+## src/main.tsx
+
+```tsx
+import { createRoot } from 'react-dom/client';
+import { App } from './App';
+import { initializeI18n } from './i18n';
+
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing root');
+
+initializeI18n().then(
+  () => createRoot(root).render(<App />),
+  (error) => {
+    console.error(error);
+    root.textContent = 'Unable to load the application.';
+  },
+);
+```
+
+## src/App.tsx
+
+```tsx
+import { t } from '@fluentic/i18n';
+import { I18nManager, I18nState } from '@fluentic/i18n-web';
+import { useEffect, useState } from 'react';
+import { languages } from './i18n';
+
+const greeting = t.msg('Welcome back, {name}!', { name: String });
+
+export function App() {
+  const state = I18nState.use();
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.lang = state.languageId;
+  }, [state.languageId]);
+
+  async function switchLanguage(languageId: string) {
+    try {
+      setFailed(false);
+      await I18nManager.setLanguageId(languageId);
+    } catch (error) {
+      console.error(error);
+      setFailed(true);
+    }
+  }
+
+  return (
+    <main>
+      <h1>{t.jsx(greeting, { name: 'Ada' })}</h1>
+
+      <label htmlFor='language'>{t.jsx('Language')}</label>
+      <select
+        id='language'
+        value={state.languageId}
+        disabled={state.isLoading}
+        onChange={(event) => void switchLanguage(event.target.value)}
+      >
+        {languages.map((language) => (
+          <option key={language.id} value={language.id}>{language.label}</option>
+        ))}
+      </select>
+
+      {t.jsx(() => (
+        <input
+          placeholder={t.text('Search projects')}
+          aria-label={t.text('Search projects')}
+        />
+      ))}
+
+      {failed && <p role='alert'>{t.jsx('Could not load translations. Please try again.')}</p>}
+    </main>
+  );
+}
+```
+
+`App` rerenders because it consumes language/loading state. The callback example demonstrates a reusable fine-grained boundary; use it in a child that does not otherwise subscribe to see the parent-rerender optimization.
+
+## Translation commands
+
+```sh
+pnpm i18n:extract
+# Add French text to i18n/translations/fr/manual.jsonl
+pnpm i18n:merge
+pnpm typecheck
+pnpm build
+```

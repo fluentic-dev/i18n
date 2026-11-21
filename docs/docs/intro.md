@@ -14,8 +14,9 @@ Write translatable messages directly where you use them. Use `t.jsx()` inside JS
 
 Manual translations are first-class: a team can translate every message manually, use an automatic provider, or combine both. Automatic translation is optional; no provider is configured by default.
 
-The CLI keeps three files for each target language:
+The CLI keeps shared metadata plus three files for each target language:
 
+- `meta.jsonl` stores each source message's notes and structured metadata once.
 - `manual.jsonl` holds translations entered by people or imported from external tools.
 - `auto.jsonl` holds provider results for previously untranslated messages.
 - `merged.jsonl` is generated from those layers; non-empty manual translations take priority.
@@ -36,7 +37,7 @@ Choose a setup guide: [React web / Vite](./runtime/react-web), [React Native / E
 
 Enable `compiled: true` and add a [build plugin](./runtime/bundlers) to remove the ICU parser from your shipped runtime. Keep writing the same message API and importing `t` from `@fluentic/i18n`. Automatic and manual translation files stay readable; the CLI emits compact merged catalogs.
 
-The compiled message runtime is about 2.2 KB gzip; a typical React setup with loading, switching, and observable state is about 3.9 KB gzip, excluding React and message data. See [the compiler guide](./runtime/compilation) for setup, tradeoffs, and measurement details.
+The compiled message runtime is about 2.4 KB gzip; a typical React setup with loading, switching, observable state, and JSX rendering is about 4.5 KB gzip, excluding React and message data. See [the compiler guide](./runtime/compilation) for setup, tradeoffs, and measurement details.
 
 ## Render an inline message
 
@@ -129,6 +130,23 @@ export function Search() {
 
 `I18nState.use()` makes the component rerender when the language changes, so `t.text()` returns the updated text. Call it once at the top level of the component.
 
+When only one element needs translated string props, use `t.jsx(() => element)` as a smaller update boundary:
+
+```tsx title="Search.tsx"
+import { t } from '@fluentic/i18n';
+
+export function Search() {
+  return t.jsx(() => (
+    <input
+      aria-label={t.text('Search projects')}
+      placeholder={t.text('Try a project name')}
+    />
+  ));
+}
+```
+
+Only the callback reruns after a language change; the parent component does not. The callback must return one React element and must not contain React hooks. Nested message calls are extracted and compiled normally.
+
 :::tip Language changes in React
 `t.jsx()` returns a React element that handles language changes itself, so it doesn’t need this extra hook. If you also use `t.text()` or `t.try(t.text, ...)` in the component, use `I18nState.use()` to keep those string values up to date.
 :::
@@ -183,12 +201,13 @@ export function Help() {
 
 ## Choose the appropriate method
 
-| Use case                                        | Method                 |
-| ----------------------------------------------- | ---------------------- |
-| Text or JSX content in React                    | `t.jsx('Save')`        |
-| A message defined before use                    | `t.msg('Save')`        |
-| A string for an attribute or another API        | `t.text(message)`      |
-| To accept descriptors alongside ordinary values | `t.try(t.text, value)` |
+| Use case                                          | Method                 |
+| ------------------------------------------------- | ---------------------- |
+| Text or JSX content in React                      | `t.jsx('Save')`        |
+| A message defined before use                      | `t.msg('Save')`        |
+| A string for an attribute or another API          | `t.text(message)`      |
+| One reactive element with translated string props | `t.jsx(() => element)` |
+| To accept descriptors alongside ordinary values   | `t.try(t.text, value)` |
 
 Fluentic uses source text as message identity instead of requiring explicit translation keys. Add [context](./learn/metadata) when identical source text needs different translations. The CLI extracts definitions from `t.msg()`, `t.text()`, and `t.jsx()`.
 

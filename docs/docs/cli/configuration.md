@@ -61,7 +61,7 @@ export default defineConfig({
   languages: { source: 'en', targets: ['fr'] },
   files: { includes: ['src/**/*.{ts,tsx}'] },
   dirs: {
-    cache: 'cache',
+    cache: 'cache.local',
     translations: 'translations',
     exports: 'exports',
   },
@@ -84,33 +84,33 @@ files: {
 
 | Option              | Default / behavior                                                       |
 | ------------------- | ------------------------------------------------------------------------ |
-| `compiled`          | `false`; emit compact merged catalogs and enable compiler adapters       |
+| `compiled`          | `false`; use `true` or `{ hashLength: 8 }` for compact compilation       |
 | `catalogFormat`     | `'jsonl'`; select `jsonl`, `json`, `cjs`, `mjs`, or an array of formats  |
 | `root`              | `'.'`                                                                    |
 | `output`            | `'i18n/data'`                                                            |
 | `languages`         | Required; source ID and target IDs                                       |
 | `files.includes`    | `['**/*.{ts,tsx,js,jsx}']`                                               |
 | `files.excludes`    | Additional ignores; `node_modules/**` is always ignored                  |
-| `dirs.cache`        | `'cache'`                                                                |
+| `dirs.cache`        | `'cache.local'`; disposable per-file extraction cache                    |
 | `dirs.translations` | `'translations'`                                                         |
 | `dirs.exports`      | `'exports'`                                                              |
 | `hashes`            | Hash output is enabled unless set to `false`                             |
 | `translator`        | Optional translator or ordered fallback array                            |
 | `env`               | `i18n.env` + `i18n.env.local` beside the config; set one path or `false` |
-| `convert`           | Optional array of named import/export converters                         |
+| `convert`           | Optional named converters; matching names override built-ins             |
 | `meta`              | Accepted by the config type; currently not applied to extracted records  |
 
 Narrow your file globs so the CLI doesn't scan generated bundles or unrelated source. For per-message metadata, use `t.meta()` in a literal chain.
 
 ## Build-time configuration
 
-Omit `translator` for a manual-only workflow. `update` still extracts and merges; it makes no provider requests. Export/import commands require a named converter in `convert`, as shown in [converters](./formats).
+Omit `translator` for a manual-only workflow. `update` still extracts and merges; it makes no provider requests. Export/import commands include `json`, `csv`, `xliff`, and `handoff`; no `convert` entry is required for these. Register a matching name in `convert` to override a built-in, or a new name to add another format. See [converters](./formats).
 
 Import the CLI only in tooling, configuration, or build scripts. Load the resulting merged catalogs with the runtime package. Provider credentials belong in the environment of the CLI process.
 
 Continue with [translator callbacks](./translators), [converters](./formats), or [loading catalogs in your app](../runtime/manager).
 
-See [compiler and bundler integration](../runtime/compilation) for `compiled: true`.
+See [compiler and bundler integration](../runtime/compilation) for `compiled: true` and configurable hash length.
 
 ## Catalog output formats
 
@@ -124,4 +124,4 @@ The default is `'jsonl'`. JSON is directly importable by Metro; CJS and MJS expo
 
 On `merge`, `update`, or `conflict`, generated `merged.jsonl`, `merged.json`, `merged.cjs`, and `merged.mjs` files not listed in `catalogFormat` are removed for configured target languages. Authoring files are not removed.
 
-After resolving conflicts in `manual.jsonl` and `auto.jsonl`, run `fluentic-i18n conflict` to extract messages and regenerate the configured catalog formats. The command refuses to overwrite conflicted or invalid authoring files. Review the generated changes and stage resolved files in Git.
+After resolving conflicts in `meta.jsonl`, `manual.jsonl`, and `auto.jsonl`, run `fluentic-i18n conflict` to regenerate the configured catalog formats. The command refuses conflicted or invalid authoring files.

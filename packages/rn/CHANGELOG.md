@@ -1,5 +1,13 @@
 # @fluentic/i18n-rn
 
+## 0.1.0-beta.2
+
+### Patch Changes
+
+- Use the standalone compiler package in Babel and Metro integrations.
+- Preserve native line-break rendering and isolated provider behavior.
+- Publish built declarations and require the beta.2 core runtime.
+
 ## 0.1.0-beta.1
 
 ### Minor Changes

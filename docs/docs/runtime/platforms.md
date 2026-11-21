@@ -7,14 +7,14 @@ sidebar_label: Platform adapters
 
 Business and UI modules import `t` and `I18nRegistry` from `@fluentic/i18n`. Only setup and integration files need a platform adapter.
 
-| Entry                     | Responsibility                                                            |
-| ------------------------- | ------------------------------------------------------------------------- |
-| `@fluentic/i18n`          | Universal descriptors, synchronous text/JSX calls, dynamic ICU formatting |
-| `@fluentic/i18n/compiled` | Compact message interpreter; selected by the compiler                     |
-| `@fluentic/i18n-web`      | React rendering, subscriptions, optional browser storage                  |
-| `@fluentic/i18n-rn`       | React Native rendering and optional native storage                        |
-| `@fluentic/i18n-nextjs`   | RSC/client exports, request initialization and provider hydration         |
-| `@fluentic/i18n/adapter`  | Generic manager factories and integration contracts                       |
+| Entry                     | Responsibility                                                             |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `@fluentic/i18n`          | Universal descriptors, synchronous text/JSX calls, dynamic ICU formatting  |
+| `@fluentic/i18n/compiled` | Compact message interpreter; selected by the compiler                      |
+| `@fluentic/i18n-web`      | React rendering, subscriptions, optional browser storage                   |
+| `@fluentic/i18n-rn`       | React Native rendering and optional native storage                         |
+| `@fluentic/i18n-nextjs`   | RSC/client exports, browser hydration, and cookie or URL language handling |
+| `@fluentic/i18n/adapter`  | Generic manager factories and integration contracts                        |
 
 The normal runtime includes `intl-messageformat`. The compiled runtime has no parser or `intl-messageformat` dependency in its import graph. Both use the same adapters. See [compilation](./compilation).
 
@@ -44,7 +44,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 I18nManager.setStorage(createNativeStorage(AsyncStorage));
 ```
 
-For compilation, add `@fluentic/i18n-rn/plugin/babel` to the host app's Babel plugins. Keep its Expo/Metro preset. Follow the [React Native / Expo guide](./react-native) for Babel setup, catalog packaging, initialization, state observation, and persistence. See `examples/rn` for a runnable Expo app.
+For compilation, add `@fluentic/i18n-compiler/babel` to the host app's Babel plugins. Keep its Expo/Metro preset. Follow the [React Native / Expo guide](./react-native) for Babel setup, catalog packaging, initialization, state observation, and persistence. See `examples/rn` for a runnable Expo app.
 
 ## Next.js
 
@@ -54,7 +54,7 @@ See [Next.js integration](./nextjs). Language selection belongs to the app. The 
 
 `createI18nManager()` returns `{manager, state, runtime}` without replacing the default runtime. Pass an initialized instance to `I18nProvider` for an isolated React subtree. `t.jsx()` reads that provider when its returned component renders.
 
-For synchronous attributes in an isolated provider, use `useI18nRenderer(t.text)` with a descriptor. This explicitly binds the existing universal renderer and subscribes the component. A plain global `t.text()` cannot discover React context outside React hooks.
+For synchronous attributes in an isolated provider, use `useI18nRenderer(t.text)` with a descriptor when the component needs a bound renderer. For one element, `t.jsx(() => element)` creates a provider-aware fine-grained boundary and reruns its nested `t.text()` calls in the correct isolated runtime. A plain global `t.text()` cannot discover React context outside React hooks.
 
 ```tsx
 import { t } from '@fluentic/i18n';

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { I18nDemo, ready } from './screen';
 import './dropdowns.css';
 import './styles.css';
+import './casebook.css';
 
 ready.then(() =>
   createRoot(document.querySelector('#root')!).render(

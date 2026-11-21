@@ -1,0 +1,103 @@
+# React runtime, switching, and subscriptions
+
+## Language switcher
+
+```tsx
+import { t } from '@fluentic/i18n';
+import { I18nManager, I18nState } from '@fluentic/i18n-web';
+import { useEffect, useState } from 'react';
+
+export function LanguageSwitcher() {
+  const state = I18nState.use();
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.lang = state.languageId;
+  }, [state.languageId]);
+
+  async function change(languageId: string) {
+    try {
+      setFailed(false);
+      await I18nManager.setLanguageId(languageId);
+    } catch (error) {
+      console.error('Language switch failed', error);
+      setFailed(true);
+    }
+  }
+
+  return (
+    <div>
+      <label htmlFor='language'>{t.jsx('Language')}</label>
+      <select
+        id='language'
+        value={state.languageId}
+        disabled={state.isLoading}
+        onChange={(event) => void change(event.target.value)}
+      >
+        <option value='en'>English</option>
+        <option value='fr'>Français</option>
+      </select>
+      {failed && <p role='alert'>{t.jsx('Could not load translations. Please try again.')}</p>}
+    </div>
+  );
+}
+```
+
+Language commits only after required catalogs load. Failure leaves the old language active. Successful changes persist when `createLocalStorage()` is configured.
+
+## Reactivity choices
+
+`t.jsx(message)` returns a provider-aware element and subscribes internally:
+
+```tsx
+<h1>{t.jsx('Dashboard')}</h1>
+```
+
+`I18nState.use()` rerenders the whole component. Use it for many `t.text()` calls or when reading `{languageId, isLoading, ready}`:
+
+```tsx
+function Form() {
+  I18nState.use();
+  return <input placeholder={t.text('Email address')} />;
+}
+```
+
+`t.jsx(() => element)` reruns one element callback without rerendering the parent:
+
+```tsx
+function Form() {
+  return t.jsx(() => (
+    <input placeholder={t.text('Email address')} />
+  ));
+}
+```
+
+The callback returns exactly one React element. It must contain no hooks. Nested messages are normal extraction/compiler markers.
+
+## Outside React
+
+Read a snapshot:
+
+```ts
+const { languageId, isLoading, ready } = I18nState.get();
+```
+
+Subscribe and clean up:
+
+```ts
+const updateTitle = () => {
+  document.title = t.text('Your workspace');
+};
+
+updateTitle();
+const unsubscribe = I18nState.subscribe(updateTitle);
+// Later: unsubscribe();
+```
+
+Do not store a translated string at module scope; format it when used.
+
+## Isolated providers
+
+`createI18nManager()` returns an isolated `{manager, state, runtime}`. Initialize it, then pass it to `I18nProvider`. `t.jsx()` and the callback boundary discover the provider. For component-level string rendering, use `useI18nRenderer(t.text)`.
+
+SPA code does not use `getSnapshot()` or `hydrate()`. Those live at `@fluentic/i18n/hydration` for SSR adapters; Next.js handles them internally.

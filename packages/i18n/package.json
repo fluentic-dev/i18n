@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "Framework-independent internationalization primitives for Fluentic applications.",
   "license": "MIT",
   "repository": {
@@ -24,100 +24,66 @@
   },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./core": {
-      "types": "./src/core/index.ts",
+      "types": "./dist/core/index.d.ts",
       "import": "./dist/core/index.js",
       "default": "./dist/core/index.js"
     },
     "./adapter": {
-      "types": "./src/adapter.ts",
+      "types": "./dist/adapter.d.ts",
       "import": "./dist/adapter.js",
       "default": "./dist/adapter.js"
     },
     "./react": {
-      "types": "./src/react.ts",
+      "types": "./dist/react.d.ts",
       "import": "./dist/react.js",
       "default": "./dist/react.js"
     },
+    "./hydration": {
+      "types": "./dist/hydration.d.ts",
+      "import": "./dist/hydration.js",
+      "default": "./dist/hydration.js"
+    },
     "./types": {
-      "types": "./src/types.ts",
+      "types": "./dist/types.d.ts",
       "import": "./dist/types.js",
       "default": "./dist/types.js"
     },
     "./compiled": {
-      "types": "./src/compiled.ts",
+      "types": "./dist/compiled.d.ts",
       "default": "./dist/compiled.js"
     },
-    "./compiler": {
-      "types": "./src/compiler/index.ts",
-      "default": "./dist/compiler.js"
-    },
-    "./plugin/babel": {
-      "types": "./src/plugin/babel.ts",
-      "import": "./dist/plugin/babel.js",
-      "require": "./dist-cjs/babel.cjs"
-    },
-    "./plugin/vite": {
-      "types": "./src/plugin/vite.ts",
-      "default": "./dist/plugin/vite.js"
-    },
-    "./plugin/rollup": {
-      "types": "./src/plugin/rollup.ts",
-      "default": "./dist/plugin/rollup.js"
-    },
-    "./plugin/esbuild": {
-      "types": "./src/plugin/esbuild.ts",
-      "default": "./dist/plugin/esbuild.js"
-    },
-    "./plugin/webpack": {
-      "types": "./src/plugin/webpack.ts",
-      "default": "./dist/plugin/webpack.js"
-    },
-    "./plugin/webpack-loader": {
-      "types": "./src/plugin/webpack-loader.ts",
-      "default": "./dist/plugin/webpack-loader.js"
+    "./compiler-support": {
+      "types": "./dist/compiler-support.d.ts",
+      "default": "./dist/compiler-support.js"
     }
   },
   "files": [
     "dist",
-    "src",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE",
-    "dist-cjs"
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && tsc -p tsconfig.build.json",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm test:types && pnpm build && node --test test/*.test.mjs",
-    "test:types": "tsc --noEmit --strict --skipLibCheck --esModuleInterop --module ESNext --moduleResolution Bundler --target ES2020 --jsx react-jsx test/react.types.tsx test/compiled.types.ts"
+    "test:types": "tsc --ignoreConfig --noEmit --strict --skipLibCheck --esModuleInterop --module ESNext --moduleResolution Bundler --target ES2020 --lib ES2022,DOM --jsx react-jsx test/react.types.tsx test/compiled.types.ts"
   },
   "dependencies": {
-    "intl-messageformat": "^10.7.16",
-    "@babel/parser": "^7.28.4",
-    "@babel/traverse": "^7.28.4",
-    "@babel/types": "^7.28.4",
-    "@babel/generator": "^7.28.3",
-    "@formatjs/icu-messageformat-parser": "2.11.4",
-    "jiti": "^2.7.0",
-    "@jridgewell/remapping": "^2.3.5",
-    "@noble/hashes": "^1.8.0"
+    "intl-messageformat": "^10.7.16"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
     "react": "^19.2.0",
     "react-test-renderer": "19.3.1",
     "tsdown": "^0.22.1",
-    "typescript": "^5.9.3",
-    "@types/babel__traverse": "^7.20.7",
-    "@types/babel__generator": "^7.27.0",
-    "@types/node": "^22.15.0",
-    "@babel/core": "^7.28.4"
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "react": ">=18"

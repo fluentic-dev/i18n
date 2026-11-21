@@ -1,0 +1,86 @@
+{
+  "name": "@fluentic/i18n-compiler",
+  "version": "0.1.0-beta.2",
+  "description": "Build-time compiler and bundler integrations for Fluentic i18n.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fluentic-dev/i18n.git",
+    "directory": "packages/compiler"
+  },
+  "homepage": "https://fluenticstack.com/i18n/",
+  "bugs": {
+    "url": "https://github.com/fluentic-dev/i18n/issues"
+  },
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    },
+    "./babel": {
+      "types": "./dist/babel.d.ts",
+      "import": "./dist/babel.mjs",
+      "require": "./dist-cjs/babel.cjs"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "default": "./dist/vite.mjs"
+    },
+    "./rollup": {
+      "types": "./dist/rollup.d.ts",
+      "default": "./dist/rollup.mjs"
+    },
+    "./esbuild": {
+      "types": "./dist/esbuild.d.ts",
+      "default": "./dist/esbuild.mjs"
+    },
+    "./webpack": {
+      "types": "./dist/webpack.d.ts",
+      "default": "./dist/webpack.mjs"
+    },
+    "./webpack-loader": {
+      "types": "./dist/webpack-loader.d.ts",
+      "default": "./dist/webpack-loader.mjs"
+    },
+    "./nextjs": {
+      "types": "./dist/nextjs.d.ts",
+      "default": "./dist/nextjs.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "dist-cjs",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsdown && tsc -p tsconfig.build.json",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm build && node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@babel/generator": "7.29.15",
+    "@babel/parser": "7.29.15",
+    "@babel/traverse": "7.29.15",
+    "@babel/types": "7.29.15",
+    "@types/babel__traverse": "^7.28.0",
+    "@fluentic/i18n": "workspace:*",
+    "@formatjs/icu-messageformat-parser": "2.11.4",
+    "@jridgewell/remapping": "^2.3.5",
+    "jiti": "^2.7.0"
+  },
+  "devDependencies": {
+    "@babel/core": "7.29.13",
+    "@types/babel__generator": "^7.27.0",
+    "@types/node": "^22.15.0",
+    "tsdown": "^0.22.1",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,6 +1,13 @@
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue; };
 export type MessageRecord = { id: string; source: string; context: string | null; notes: string[]; meta?: JsonValue; };
 export type TranslationRecord = MessageRecord & { translation: string; origin: 'auto' | 'manual' | 'imported'; };
+export type MessageMetadata = { notes: string[]; meta?: JsonValue; };
+export type MetaTuple =
+  | [source: string, metadata: MessageMetadata]
+  | [context: string, source: string, metadata: MessageMetadata];
+export type TranslationTuple =
+  | [source: string, translation: string]
+  | [context: string, source: string, translation: string];
 export type TranslationResult = { id: string; translation: string; error?: unknown; };
 export type TranslationRequest = TranslationRequestBase & { env: (name: string) => string; };
 export type TranslationRequestBase = { sourceLanguageId: string; targetLanguageId: string; items: TranslationItem[]; };
@@ -26,9 +33,15 @@ export type DefinedTranslator = Readonly<{
   tag: boolean;
 }>;
 export type Translator = TranslateFn | DefinedTranslator;
-export type ConverterInput = { languageId: string; items: TranslationRecord[]; filePath?: string; };
+export type ConverterInput = {
+  sourceLanguageId?: string;
+  languageId: string;
+  items: TranslationRecord[];
+  filePath?: string;
+};
 export type ConverterOutput = { files: Array<{ path: string; content: string | Uint8Array; }>; };
 export type ConverterImportInput = {
+  sourceLanguageId?: string;
   languageId: string;
   files: Array<{ path: string; content: string | Uint8Array; }>;
 };
@@ -37,3 +50,14 @@ export type Converter = {
   import?: (input: ConverterImportInput) => Promise<TranslationRecord[]> | TranslationRecord[];
   export?: (input: ConverterInput) => Promise<ConverterOutput> | ConverterOutput;
 };
+
+export type ExchangeOptions = { directory?: string; };
+
+export type ProviderTranslatorOptions = {
+  apiKeyEnv?: string;
+  endpoint?: string;
+  apiKey?: string;
+};
+export type ProviderTranslatorOptionsFactory = (
+  context: { env: (name: string) => string; },
+) => ProviderTranslatorOptions;

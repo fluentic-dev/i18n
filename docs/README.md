@@ -23,7 +23,7 @@ pnpm --filter @fluentic/i18n test
 pnpm test:docs-workflow
 ```
 
-When editing examples, verify them against the implementation and explain behavior in practical terms. For `t.text()` inside a component, show `I18nState.use()` when the text should update on language changes. `t.jsx()` handles those changes itself.
+When editing examples, verify them against the implementation and explain behavior in practical terms. For `t.text()` inside a component, show `I18nState.use()` for a convenient whole-component subscription or `t.jsx(() => element)` for a fine-grained single-element boundary. `t.jsx(message)` handles its own changes. Do not put React hooks inside the callback overload.
 
 Write for developers using familiar terms such as rendering, interpolation, descriptors, loaders, and callbacks. Lead sections with the task and explain API behavior through concrete examples. Keep the progressive guide structure; avoid marketing slogans and unnecessary implementation details.
 

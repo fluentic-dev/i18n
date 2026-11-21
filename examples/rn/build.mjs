@@ -1,11 +1,11 @@
 import { transformFileAsync } from '@babel/core';
-import fluentic from '@fluentic/i18n-rn/plugin/babel';
+import fluentic from '@fluentic/i18n-compiler/babel';
 import { mkdir, writeFile } from 'node:fs/promises';
 const result = await transformFileAsync('App.tsx', {
   configFile: false,
   babelrc: false,
   presets: ['@babel/preset-typescript', ['@babel/preset-react', { runtime: 'automatic' }]],
-  plugins: [[fluentic, { compiled: true }]],
+  plugins: [fluentic],
   sourceMaps: true,
 });
 await mkdir('dist', { recursive: true });

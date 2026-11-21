@@ -8,6 +8,26 @@ description: Add locale-aware numbers, dates, computed params, and reusable mess
 
 Message params support numbers, dates, descriptors, and callbacks. Use ICU syntax to format values within a message, and `I18nRegistry` to register formats shared across your app. Declare reusable message param types with `t.msg()`, then provide real values to `t.text()` or `t.jsx()`.
 
+## Add an explicit line break
+
+Use the reserved `{break}` param when a message must render a line break. You do not pass it in `params`:
+
+```tsx
+t.text('Shipping address{break}Apartment 4B');
+t.jsx('Shipping address{break}Apartment 4B');
+```
+
+`t.text()` renders `{break}` as `\n`. Web JSX renders a `<br>`, while React Native JSX renders a newline inside `Text`.
+
+Line breaks in a source string are treated as code formatting and normalized to spaces. This lets you wrap a long message in code without changing its text or translation identity:
+
+```tsx
+t.text(`This long message can wrap
+  across source lines and still renders on one line.`);
+```
+
+Translations follow the same rule. Use `{break}` in the source and translation whenever the rendered message intentionally needs a new line.
+
 ## Format numbers, dates, and times
 
 Use ICU format arguments to format values in the active locale:

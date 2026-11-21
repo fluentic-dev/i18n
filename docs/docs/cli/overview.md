@@ -18,23 +18,21 @@ You do not edit the final catalog directly. The CLI rebuilds it from the separat
 
 ```text
 source files
-    │
-    │ extract message calls
-    ▼
-cache/extracted.json
-    │
-    │ merge with existing files
+    │ extract changed files; synchronize current messages
+    ├──────────────► translations/meta.jsonl        shared notes and metadata
     ├──────────────► translations/fr/manual.jsonl   human translations
     └──────────────► translations/fr/auto.jsonl     provider translations
-                              │
-                              │ manual wins when both exist
+                              │ merge: manual wins when both exist
                               ▼
                     translations/fr/merged.jsonl
+
+cache.local/{hashes,extract}.json
+    local per-file extraction cache; safe to delete
 ```
 
 `merged.jsonl` is the default file your application loads. Set [`catalogFormat`](./configuration#catalog-output-formats) to generate JSON, CJS, or MJS catalogs instead or alongside it. `manual.jsonl` and `auto.jsonl` are the files the CLI uses to produce them.
 
-These files use JSONL deliberately: one complete message record per line, with a stable message ID. When two branches add or update different messages, Git can usually merge those lines independently instead of treating the whole catalog as one conflicting document. If the same message is changed in two branches, the conflict still needs review; the line-oriented format simply keeps unrelated work out of that conflict.
+These files use JSONL deliberately: one message tuple per line. Context and source text form the identity; no generated ID is stored in authoring files. When two branches update different messages, Git can usually merge those lines independently.
 
 After resolving conflicts in the authoring JSONL files, run `pnpm i18n conflict` to regenerate all configured catalog formats. The command stops if an authoring file still has conflict markers or invalid records. Stage the resolved files in Git after reviewing them.
 
@@ -86,19 +84,25 @@ t.msg('You have {count} messages', { count: Number });
 t.context('checkout').note('Primary payment action').text('Continue');
 ```
 
-the extractor finds those literal message calls and records their source text, context, notes, and stable ID in:
+the extractor finds those literal message calls. It writes shared notes and structured metadata once to `translations/meta.jsonl`, then synchronizes `[message, translation]` and `[context, message, translation]` tuples in every target language. Existing translations with matching context and source text are preserved; obsolete messages are removed.
+
+To avoid reparsing unchanged source, it maintains two disposable local files:
 
 ```text
-i18n/data/cache/extracted.json
+i18n/data/cache.local/
+├── hashes.json    # source modification times and content hashes
+└── extract.json   # messages grouped by source file
 ```
+
+Ignore `cache.local` in version control. Deleting it affects only extraction speed: the next extraction rebuilds it from source. Merging never reads this cache.
 
 `t.jsx()`, `t.text()`, and `t.msg()` are extraction markers. Use the named import `t` from `@fluentic/i18n` or `@fluentic/i18n/core`, and literal strings or template literals without interpolations. The extractor does not follow renamed imports, variable aliases, or scopes saved in variables. Inline `context()`, `note()`, and `meta()` chains are supported; see [metadata](../learn/metadata).
 
-A dynamic source passed to `t.msg()` fails extraction; a non-literal argument to `t.jsx()` or `t.text()` is skipped. Reused descriptors are extracted at their literal `t.msg()` definition.
+A dynamic source passed to `t.msg()` fails extraction; a non-literal message argument to `t.jsx()` or `t.text()` is skipped. The special `t.jsx(() => element)` callback is a reactive boundary rather than a message, so the outer call is ignored while literal `t.text()`, `t.jsx()`, and `t.msg()` calls inside its callback are extracted normally. Reused descriptors are extracted at their literal `t.msg()` definition.
 
-Extraction does not translate anything or write language catalogs. It only refreshes the source list.
+Extraction does not call an automatic translation provider or write runtime catalogs. It updates the authoring translation layers directly.
 
-Run extraction alone when you want to inspect that list:
+Run extraction alone when you want to synchronize source messages without translating or rebuilding runtime catalogs:
 
 ```sh
 pnpm i18n extract
@@ -106,7 +110,7 @@ pnpm i18n extract
 
 ## 3. Understand the translation files
 
-Run merge after extraction:
+Run merge after extraction or manual translation edits:
 
 ```sh
 pnpm i18n merge
@@ -115,19 +119,21 @@ pnpm i18n merge
 For each target language, the CLI creates:
 
 ```text
-i18n/data/translations/fr/
-├── manual.jsonl
-├── auto.jsonl
-└── merged.jsonl
+i18n/data/translations/
+├── meta.jsonl
+└── fr/
+    ├── manual.jsonl
+    ├── auto.jsonl
+    └── merged.jsonl
 ```
 
-`manual.jsonl` is for translations written or reviewed by people. `auto.jsonl` is for translations returned by a provider. `merged.jsonl` combines both, with a non-empty manual translation taking priority over an automatic translation.
+`meta.jsonl` is the language-independent source list. Its rows are `[message, metadata]` or `[context, message, metadata]`. Translation rows are `[message, translation]` or `[context, message, translation]`. `manual.jsonl` is for translations written or reviewed by people; `auto.jsonl` is for provider results. `merged.jsonl` combines both, with a non-empty manual translation taking priority.
 
-For a manual-only workflow, leave `translator` unset, fill the `translation` fields in `manual.jsonl`, and run `merge` again. The manual layer can supply every translation your app uses. Do not edit `merged.jsonl`; it is regenerated.
+For a manual-only workflow, leave `translator` unset, fill the last tuple value in `manual.jsonl`, and run `merge` again. Do not edit `merged.jsonl`; it is regenerated.
 
 Review wording and ICU behavior in your app. To retain an approved provider translation as a manual override, copy its translation into the matching manual record. The CLI has no review or approval command.
 
-Merging keeps only IDs in the latest extraction. Removing a message or changing its source text or context removes its old record from both layers on the next merge. Commit catalogs to Git if you need their history.
+Extraction keeps only identities currently present in source. Removing a message or changing its source text or context removes its old metadata and translation rows on the next extraction. Merge reads `meta.jsonl` and the translation files, so it works on a clean checkout without source extraction or a local cache.
 
 ## 4. Automatically translate missing messages
 
@@ -156,7 +162,8 @@ Keep `i18n.env.local` out of version control. You can select one custom file wit
 Google Cloud Translation uses `GOOGLE_TRANSLATE_API_KEY` by default:
 
 ```ts
-import { createGoogleTranslator, defineConfig } from '@fluentic/i18n-cli';
+import { defineConfig } from '@fluentic/i18n-cli';
+import { createGoogleTranslator } from '@fluentic/i18n-cli/translators';
 
 export default defineConfig({
   languages: { source: 'en', targets: ['fr'] },
@@ -183,7 +190,8 @@ translator: createGoogleTranslator(({ env }) => ({
 DeepL uses `DEEPL_API_KEY` by default and the DeepL Free endpoint:
 
 ```ts
-import { createDeepLTranslator, defineConfig } from '@fluentic/i18n-cli';
+import { defineConfig } from '@fluentic/i18n-cli';
+import { createDeepLTranslator } from '@fluentic/i18n-cli/translators';
 
 export default defineConfig({
   languages: { source: 'en', targets: ['fr'] },
@@ -239,25 +247,41 @@ pnpm i18n update
 
 `update` performs the complete flow:
 
-1. extract messages into `cache/extracted.json`;
-2. merge the extracted IDs with both layers, preserving matching translations and removing obsolete records;
+1. incrementally extract changed source files and update both authoring layers;
+2. preserve matching translations and remove obsolete records;
 3. if a translator is configured, request only messages missing from both layers;
 4. write new provider results to `auto.jsonl`;
-5. rebuild `merged.jsonl` for the application.
+5. rebuild the runtime catalog from translation files alone.
 
-Run it again whenever messages change. Matching manual translations are retained. After manual edits or imports, `merge` alone is enough if the extracted source list is current.
+Run it again whenever messages change. Matching manual translations are retained. After manual edits or imports, `merge` alone is enough because it reconstructs catalogs directly from the translation authoring files.
 
 ## Other commands
 
 | Command                        | What it does                                                                          |
 | ------------------------------ | ------------------------------------------------------------------------------------- |
 | `pnpm i18n update`             | Extract, translate missing messages, and rebuild catalogs                             |
-| `pnpm i18n extract`            | Refresh only the extracted message list                                               |
-| `pnpm i18n merge`              | Rebuild both layers and the merged catalog from the last extraction; no provider call |
+| `pnpm i18n extract`            | Incrementally synchronize source messages into the translation authoring files        |
+| `pnpm i18n merge`              | Rebuild runtime catalogs from translation files only; no source scan or provider call |
 | `pnpm i18n translate`          | Translate missing messages; run `merge` afterward                                     |
-| `pnpm i18n export <converter>` | Export the existing merged catalogs through a configured converter                    |
+| `pnpm i18n export <converter>` | Export readable translations through a built-in or configured converter               |
 | `pnpm i18n import <converter>` | Import records into the manual layer; run `merge` afterward                           |
 
-For JSON, CSV, PO, or XLIFF exchange, supply [import/export converters](./formats). Publish `merged.jsonl` and configure a [runtime loader](../runtime/loading) separately; the CLI does not load catalogs into your app.
+JSON, CSV, XLIFF, and `handoff` exchange are built in; use `--output <folder>` for export and `--input <folder>` for import. Add or override formats with [import/export converters](./formats). Publish `merged.jsonl` and configure a [runtime loader](../runtime/loading) separately; the CLI does not load catalogs into your app.
 
 For detailed configuration, see [CLI configuration](./configuration). For provider behavior and custom translators, see [Translation services](./translators).
+
+## Command output and troubleshooting
+
+Commands print the config path, progress, and an outcome summary. Extraction reports matched files, cache hits, parsed files, files without message calls, removed files, unique messages, target languages, output location, and elapsed time. A cached run still reports the message total. No matching files or no translatable messages produces a warning with the relevant config fields to check.
+
+Merge reports translated and missing counts per language and the generated catalog location. Translation explains when no provider is configured or no messages need translation, and reports translated and remaining counts. Import and export report language/file counts and the exchange folder. `conflict` rebuilds catalogs after you resolve authoring-file conflicts; `update` reports each stage.
+
+Failures go to stderr with the command name and a readable explanation, and exit with status 1. Unknown formats list built-in and configured converters. Config and callback validation identify the field or language involved. Warnings (such as an unsupported language pair) do not fail the command; check the remaining-message counts.
+
+Normal errors omit stack traces. To troubleshoot a failure in a custom callback, enable technical details explicitly:
+
+```sh
+pnpm i18n --debug translate
+```
+
+Programmatic APIs still reject with errors so callers can handle them. Reporter `phase:end` events may include a `summary`; `createConsoleReporter(write, writeError)` lets you send warnings and errors to a separate stream.

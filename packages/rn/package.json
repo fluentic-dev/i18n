@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n-rn",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "React Native and Expo bindings for Fluentic i18n.",
   "license": "MIT",
   "type": "module",
@@ -18,37 +18,29 @@
   },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.mjs"
-    },
-    "./plugin/babel": {
-      "types": "./src/babel.ts",
-      "import": "./dist/babel.mjs",
-      "require": "./dist-cjs/babel.cjs"
     }
   },
   "files": [
     "dist",
-    "src",
-    "dist-cjs",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@fluentic/i18n": "workspace:*",
+    "@fluentic/i18n": ">=0.1.0-beta.2 <0.2.0",
     "react": ">=18"
   },
   "devDependencies": {
     "@fluentic/i18n": "workspace:*",
-    "react": "^19.2.0",
     "@types/react": "^19.2.14",
+    "react": "^19.2.0",
     "tsdown": "^0.22.1",
-    "typescript": "^5.9.3",
-    "@types/node": "^22.15.0"
+    "typescript": "^7.0.2"
   }
 }

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
+    "i18n:update": "fluentic-i18n --config i18n.config.ts update",
     "start": "node dist/main.mjs"
   },
   "dependencies": {
@@ -13,6 +14,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
+    "@fluentic/i18n-compiler": "workspace:*",
     "@fluentic/i18n-cli": "workspace:*"
   }
 }

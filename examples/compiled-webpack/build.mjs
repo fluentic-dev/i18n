@@ -1,4 +1,4 @@
-import { compileCatalog } from '@fluentic/i18n/compiler';
+import { compileCatalog } from '@fluentic/i18n-compiler';
 import { mkdir, writeFile } from 'node:fs/promises';
 await mkdir('dist', { recursive: true });
 await writeFile(
@@ -6,7 +6,7 @@ await writeFile(
   'export default ' +
     JSON.stringify(compileCatalog([{ context: 'account', source: 'Hello {name}', translation: 'Bonjour {name}' }])),
 );
-import Fluentic from '@fluentic/i18n/plugin/webpack';
+import Fluentic from '@fluentic/i18n-compiler/webpack';
 import { resolve } from 'node:path';
 import webpack from 'webpack';
 const compiler = webpack({

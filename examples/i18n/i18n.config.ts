@@ -1,4 +1,5 @@
-import { createDeepLTranslator, createGoogleTranslator, defineConfig } from '@fluentic/i18n-cli';
+import { defineConfig } from '@fluentic/i18n-cli';
+import { createDeepLTranslator, createGoogleTranslator } from '@fluentic/i18n-cli/translators';
 
 export default defineConfig({
   env: '../i18n.local.env',

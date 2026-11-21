@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n-nextjs",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "Next.js App Router and React Server Component bindings for Fluentic i18n.",
   "license": "MIT",
   "type": "module",
@@ -18,7 +18,6 @@
   },
   "files": [
     "dist",
-    "src",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
@@ -28,48 +27,93 @@
   ],
   "exports": {
     ".": {
-      "types": "./src/client.ts",
+      "types": "./dist/client.d.ts",
       "react-server": "./dist/server.mjs",
       "default": "./dist/client.mjs"
     },
     "./server": {
-      "types": "./src/server.ts",
+      "types": "./dist/server.d.ts",
       "react-server": "./dist/server.mjs",
       "node": "./dist/server.mjs",
       "default": "./dist/unavailable.mjs"
     },
     "./config": {
-      "types": "./src/config.ts",
+      "types": "./dist/config.d.ts",
       "default": "./dist/config.mjs"
     },
+    "./language": {
+      "types": "./dist/language.d.ts",
+      "default": "./dist/language.mjs"
+    },
     "./request": {
-      "types": "./src/request.ts",
+      "types": "./dist/request.d.ts",
       "default": "./dist/request.mjs"
     },
-    "./plugin": {
-      "types": "./src/plugin.ts",
-      "default": "./dist/plugin.mjs"
+    "./handler/cookie/client": {
+      "types": "./dist/cookie-client.d.ts",
+      "default": "./dist/cookie-client.mjs"
+    },
+    "./handler/cookie/server": {
+      "types": "./dist/cookie-server.d.ts",
+      "react-server": "./dist/cookie-server.mjs",
+      "node": "./dist/cookie-server.mjs",
+      "default": "./dist/unavailable.mjs"
+    },
+    "./handler/url/client": {
+      "types": "./dist/url-client.d.ts",
+      "default": "./dist/url-client.mjs"
+    },
+    "./handler/url/server": {
+      "types": "./dist/url-server.d.ts",
+      "react-server": "./dist/url-server.mjs",
+      "node": "./dist/url-server.mjs",
+      "default": "./dist/url-server.mjs"
+    },
+    "./cookie/client": {
+      "types": "./dist/cookie-client.d.ts",
+      "default": "./dist/cookie-client.mjs"
+    },
+    "./cookie/server": {
+      "types": "./dist/cookie-server.d.ts",
+      "react-server": "./dist/cookie-server.mjs",
+      "node": "./dist/cookie-server.mjs",
+      "default": "./dist/unavailable.mjs"
+    },
+    "./url/client": {
+      "types": "./dist/url-client.d.ts",
+      "default": "./dist/url-client.mjs"
+    },
+    "./url/proxy": {
+      "types": "./dist/url-proxy.d.ts",
+      "default": "./dist/url-proxy.mjs"
+    },
+    "./url/server": {
+      "types": "./dist/url-server.d.ts",
+      "react-server": "./dist/url-server.mjs",
+      "node": "./dist/url-server.mjs",
+      "default": "./dist/unavailable.mjs"
     }
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && tsc -p tsconfig.build.json",
+    "test": "pnpm build && node --test test/*.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "server-only": "^0.0.1"
   },
   "peerDependencies": {
-    "@fluentic/i18n": "workspace:*",
-    "react": ">=19",
-    "next": ">=15"
+    "@fluentic/i18n": ">=0.1.0-beta.2 <0.2.0",
+    "next": ">=15",
+    "react": ">=19"
   },
   "devDependencies": {
     "@fluentic/i18n": "workspace:*",
-    "react": "^19.2.0",
-    "@types/react": "^19.2.14",
     "@types/node": "^22.15.0",
-    "next": "^16.0.0",
+    "@types/react": "^19.2.14",
+    "next": "^16.4.6",
+    "react": "^19.2.0",
     "tsdown": "^0.22.1",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   }
 }

@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useRef, useSyncExternalStore } from 'react';
 import type { MessageFormatOptions } from './core/types';
-import { createI18nManager, defaultManaged, type I18nSnapshot, type ManagedI18n } from './manager';
+import { createI18nManager, defaultManaged, type ManagedI18n } from './manager';
 import { defaultRuntime, getRuntime, type PartsRenderer, type Runtime, withRuntime } from './shared/runtime';
 
-declare module '@fluentic/i18n/types' {
+declare module './types' {
   interface I18nJsxConfig {
     JSX: React.ReactElement;
     Element: React.ReactElement;
@@ -26,10 +26,20 @@ function TranslatedMessage({ render }: { render: PartsRenderer; }) {
   );
 }
 
+function ReactiveJsxCallback({ render }: { render: () => React.ReactNode; }) {
+  const managed = useContext(Context);
+  const runtime = managed?.runtime ?? getRuntime();
+  useSyncExternalStore(runtime.subscribe, runtime.getSnapshot, runtime.getSnapshot);
+
+  return React.createElement(React.Fragment, null, withRuntime(runtime, render));
+}
+
 export function installReactAdapter(runtime: Runtime, lineBreak: React.ReactNode = React.createElement('br')): void {
   runtime.jsxLineBreak = lineBreak;
   runtime.jsxHandler = (_options: MessageFormatOptions, render: PartsRenderer) =>
     React.createElement(TranslatedMessage, { render });
+  runtime.jsxCallbackHandler = (render) =>
+    React.createElement(ReactiveJsxCallback, { render: render as () => React.ReactNode });
   runtime.tagElement = (element) => {
     if (!React.isValidElement(element)) throw new TypeError('[i18n] t.tag expects a handler or React element');
 
@@ -49,33 +59,26 @@ export const I18nState = {
 };
 
 export function I18nProvider(
-  { children, snapshot, instance, lineBreak }: {
+  { children, instance, lineBreak }: {
     children?: React.ReactNode;
-    snapshot?: I18nSnapshot;
     instance?: ManagedI18n;
     lineBreak?: React.ReactNode;
   },
 ) {
   const ref = useRef<
-    { managed: ManagedI18n; snapshot?: I18nSnapshot; instance?: ManagedI18n; lineBreak?: React.ReactNode; } | null
+    { managed: ManagedI18n; instance?: ManagedI18n; lineBreak?: React.ReactNode; } | null
   >(null);
 
-  if (
-    !ref.current || ref.current.snapshot !== snapshot || ref.current.instance !== instance ||
-    ref.current.lineBreak !== lineBreak
-  ) {
-    if (snapshot && instance) throw new Error('[i18n] pass either snapshot or instance, not both');
-
+  if (!ref.current || ref.current.instance !== instance || ref.current.lineBreak !== lineBreak) {
     const managed = instance ?? createI18nManager();
     installReactAdapter(managed.runtime, lineBreak);
-    if (snapshot) managed.manager.hydrate(snapshot);
-    ref.current = { managed, snapshot, instance, lineBreak };
+    ref.current = { managed, instance, lineBreak };
   }
 
   const managed = ref.current.managed;
   const state = useSyncExternalStore(managed.state.subscribe, managed.state.get, managed.state.get);
 
-  if (!state.ready) throw new Error('[i18n] initialize the provider instance or pass a ready snapshot');
+  if (!state.ready) throw new Error('[i18n] initialize the provider instance before rendering');
 
   return React.createElement(Context.Provider, { value: managed }, children);
 }
@@ -88,7 +91,7 @@ export function useI18nRuntime(): Runtime {
 }
 
 export { createI18nManager, defineTranslationLoader } from './manager';
-export type { I18nSnapshot, I18nStorage, ManagedI18n, StateData } from './manager';
+export type { I18nStorage, ManagedI18n, StateData } from './manager';
 /** Bind an existing universal renderer to this provider (including client SSR). */
 export function useI18nRenderer<F extends (...args: any[]) => any>(renderer: F): F {
   const runtime = useI18nRuntime();

@@ -1,25 +1,25 @@
 'use client';
 import { t } from '@fluentic/i18n';
-import { I18nState, useI18nRenderer } from '@fluentic/i18n-nextjs';
-import { useRouter } from 'next/navigation';
+import { I18nManager } from '@fluentic/i18n-nextjs';
+import { useActionState } from 'react';
+import { languageHandler } from '../i18n/language.client';
+import type { LanguageId } from '../i18n/languages';
+import { saveExample } from './actions';
 const account = t.context('account');
 const greeting = account.msg('Hello {name}', { name: String });
-export default function Client() {
-  const router = useRouter();
-  const state = I18nState.use();
-  // Bind synchronous attributes to this provider during client SSR as well as hydration.
-  const text = useI18nRenderer(t.text);
+export default function Client({ languageId }: { languageId: LanguageId; }) {
+  const nextLanguageId = languageId === 'fr' ? 'en' : 'fr';
+  const [saveResult, saveAction, isSaving] = useActionState(saveExample, null);
   return (
-    <section title={text(greeting, { name: 'Ada' })}>
+    <section title={t.text(greeting, { name: 'Ada' })}>
       <p>{t.jsx(greeting, { name: 'Ada' })}</p>
-      <button
-        onClick={async () => {
-          await fetch('/api/language', { method: 'POST', body: state.languageId === 'fr' ? 'en' : 'fr' });
-          router.refresh();
-        }}
-      >
-        Switch language
+      <button onClick={() => I18nManager.setLanguageId(nextLanguageId, languageHandler)}>
+        Switch to {nextLanguageId}
       </button>
+      <form action={saveAction}>
+        <button disabled={isSaving}>Save example</button>
+        {saveResult && <output>{saveResult.message}</output>}
+      </form>
     </section>
   );
 }

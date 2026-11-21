@@ -20,6 +20,16 @@ export function Welcome() {
 
 `t.jsx()` renders the source text when no translation is available. The returned React element handles language changes automatically.
 
+For translated string props on one element, the callback overload creates a smaller update boundary:
+
+```tsx
+export function Search() {
+  return t.jsx(() => <input placeholder={t.text('Search projects')} />);
+}
+```
+
+Only that wrapper reruns on language changes. Use `I18nState.use()` instead when rerendering the whole component is more convenient.
+
 All of `t.jsx()`, `t.text()`, and `t.msg()` mark literal messages for [CLI extraction](../cli/overview). Messages can stay in the same file as their component. Use `t.msg()` to define a message and its type-safe params before rendering it later.
 
 The [message guide](../intro) covers params, shared `t.msg()` descriptors, strings inside and outside components, `t.try()`, plurals, and links.

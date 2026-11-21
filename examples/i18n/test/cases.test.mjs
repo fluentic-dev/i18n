@@ -1,6 +1,6 @@
 import { t } from '@fluentic/i18n';
+import { collectMessages } from '@fluentic/i18n-compiler';
 import { I18nManager, I18nState } from '@fluentic/i18n-web';
-import { collectMessages } from '@fluentic/i18n/compiler';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
@@ -23,7 +23,7 @@ test('the casebook source remains statically extractable by the CLI', async () =
   const messages = collectMessages(source, 'screen.tsx');
   assert.match(source, /I18nState\.use\(\)/, 'plain text renders must subscribe to completed language changes');
   assert.match(source, /isLoading/, 'the language control must expose asynchronous loading state');
-  assert.match(loader, /import\('\.\.\/i18n\/translations\/fr\/merged\.jsonl'\)/);
+  assert.match(loader, /import\('\.\.\/i18n\/translations\/fr\/merged\.jsonl\?raw'\)/);
   assert.ok(messages.length >= 35, `expected a complete screen, found ${messages.length} messages`);
   assert.ok(messages.some(({ source, context }) => source === 'Open' && context === 'navigation'));
   assert.ok(messages.some(({ source, context }) => source === 'Open' && context === 'ticket.status'));

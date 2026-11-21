@@ -1,5 +1,6 @@
 import type { Formatting } from '../shared/formatting';
-import { createTagHandler, getRuntime, noTranslate } from '../shared/runtime';
+import { normalizeMessage } from '../shared/message';
+import { createTagHandler, getRuntime, noTranslate, renderJsxCallback } from '../shared/runtime';
 import type { I18nJsxOutput, I18nTagElement, I18nTagValue } from './types';
 import { isMessageDescriptor } from './types';
 import type {
@@ -66,7 +67,9 @@ export function createT({ getText, getJsx }: Formatting): TApi<I18nJsxOutput, I1
       text(message: MessageInput, params?: MessageParams) {
         return getText(toFormatOptions(message, params, scope));
       },
-      jsx(message: MessageInput, params?: MessageParams) {
+      jsx(message: MessageInput | (() => I18nTagElement), params?: MessageParams) {
+        if (typeof message === 'function') return renderJsxCallback(message);
+
         return getJsx(toFormatOptions(message, params, scope));
       },
     };
@@ -79,7 +82,7 @@ export function createT({ getText, getJsx }: Formatting): TApi<I18nJsxOutput, I1
   ): MessageDescriptor<Text, Schema> => {
     return Object.freeze({
       __fluenticMessage: true,
-      text: Array.isArray(message) ? message[0] : message,
+      text: Array.isArray(message) ? message[0] : normalizeMessage(message),
       ...(Array.isArray(message) ? { compiled: message } : {}),
       context: scope.context,
       schema: schema ?? {},

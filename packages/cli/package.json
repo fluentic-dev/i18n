@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n-cli",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "Extraction, catalog, translation, and exchange tooling for Fluentic i18n.",
   "license": "MIT",
   "repository": {
@@ -21,36 +21,42 @@
   },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
+    },
+    "./translators": {
+      "types": "./dist/translators.d.ts",
+      "import": "./dist/translators.mjs",
+      "default": "./dist/translators.mjs"
+    },
+    "./converters": {
+      "types": "./dist/converter-api.d.ts",
+      "import": "./dist/converters.mjs",
+      "default": "./dist/converters.mjs"
     }
   },
   "files": [
     "dist",
-    "src",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && tsc -p tsconfig.build.json",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@babel/parser": "^7.28.4",
-    "@babel/traverse": "^7.28.4",
-    "@babel/types": "^7.28.4",
-    "@types/babel__traverse": "^7.20.7",
     "@types/node": "^22.15.0",
     "commander": "^14.0.0",
     "fast-glob": "^3.3.3",
     "tsdown": "^0.22.1",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
-    "jiti": "^2.7.0",
-    "@fluentic/i18n": "workspace:*"
+    "@fluentic/i18n-compiler": "workspace:*",
+    "@xmldom/xmldom": "0.9.12",
+    "jiti": "^2.7.0"
   }
 }

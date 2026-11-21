@@ -17,14 +17,20 @@ const welcome = t.msg('Welcome, {name}!', { name: String });`,
     name: 't.jsx()',
     label: 'Render as JSX',
     title: 'Render the message as JSX.',
-    text: 'Use `t.jsx()` inside JSX to render a message. It handles language changes automatically.',
+    text:
+      'Use `t.jsx(message)` to render reactive message content, or `t.jsx(() => element)` to update one element’s translated string props without rerendering its parent.',
     code: `// Simple message
 <p>{t.jsx(hello)}</p>
 
 // With params
 <h1>
   {t.jsx(welcome, { name: 'Ada' })}
-</h1>`,
+</h1>
+
+// Fine-grained string props
+t.jsx(() => (
+  <input placeholder={t.text('Search')} />
+));`,
     to: '/docs/learn/tags',
   },
   {
@@ -123,7 +129,7 @@ const getGreeting = () => t.text('Hello!');`,
     icon: 'extract',
     title: 'Extract marked messages from your code',
     text:
-      '`t.jsx()`, `t.text()`, and `t.msg()` mark translatable messages. The CLI recognizes those calls and extracts their source text, context, notes, and stable IDs for translation.',
+      '`t.jsx()`, `t.text()`, and `t.msg()` mark translatable messages. The CLI extracts source text, context, notes, and metadata while translation files stay as readable source/translation tuples.',
     language: 'tsx',
     code: `import { t } from '@fluentic/i18n';
 
@@ -165,9 +171,8 @@ pnpm i18n update
     text:
       'Use Google Translate, DeepL, or another configured service to translate extracted messages. Use `defineTranslator()` when you want to connect your own provider.',
     language: 'typescript',
-    code: `import {
-  defineConfig, createGoogleTranslator,
-} from '@fluentic/i18n-cli';
+    code: `import { defineConfig } from '@fluentic/i18n-cli';
+import { createGoogleTranslator } from '@fluentic/i18n-cli/translators';
 
 export default defineConfig({
   languages: { source: 'en', targets: ['fr'] },
@@ -260,8 +265,8 @@ export const faqs = [
     'No. The default runtime formats ICU strings with IntlMessageFormat. Enable `compiled: true` and add a build plugin when you want compact catalogs and no runtime ICU parser. Your source-level message API stays the same; automatic and manual translations stay readable.',
   ],
   [
-    'What does the ~2.2 KB size include?',
-    'It is the gzipped compiled message runtime, including the full `t` API and compact ICU formatting. A typical React setup with catalog loading, language switching, state observation, and JSX rendering measures ~3.9 KB gzip. React, catalogs, per-message fallback data, and application loader code are additional.',
+    'What does the ~2.4 KB size include?',
+    'It is the gzipped compiled message runtime, including the full `t` API and compact ICU formatting. A typical React setup with catalog loading, language switching, state observation, and JSX rendering measures ~4.5 KB gzip. React, catalogs, per-message fallback data, and application loader code are additional.',
   ],
   [
     'Why is `t.msg()` separate from `t.jsx()` and `t.text()`?',

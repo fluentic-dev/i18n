@@ -1,6 +1,7 @@
 import { isMessageDescriptor, isMessageSchemaValue, isMessageTagHandler } from '../core/types';
 import type { MessageFormatOptions, MessageParam } from '../core/types';
 import type { CompactMessage } from './compact';
+import { normalizeMessage } from './message';
 import { type Formats, getFormats, getRuntime, type Runtime } from './runtime';
 
 export type Engine = (
@@ -90,7 +91,13 @@ export function createFormatting(
       }
     }
 
-    return engine(message, languageId, getFormats(runtime, languageId), values, isCompiled);
+    return engine(
+      typeof message === 'string' ? normalizeMessage(message) : message,
+      languageId,
+      getFormats(runtime, languageId),
+      values,
+      isCompiled,
+    );
   };
 
   const getText = (options: MessageFormatOptions, runtime = getRuntime()): string => {

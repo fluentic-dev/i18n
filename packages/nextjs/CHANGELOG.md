@@ -1,5 +1,13 @@
 # @fluentic/i18n-nextjs
 
+## 0.1.0-beta.2
+
+### Patch Changes
+
+- Add validated cookie and URL-prefix language strategies with client handlers, Proxy integration, and Node/Edge request isolation.
+- Keep hydration internal to the Next.js provider while the core SPA manager stays client-focused.
+- Publish built declarations and require the beta.2 core runtime.
+
 ## 0.1.0-beta.1
 
 ### Minor Changes

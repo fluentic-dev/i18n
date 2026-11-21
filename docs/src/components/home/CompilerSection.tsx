@@ -22,7 +22,7 @@ export function CompilerSection() {
       <div className={styles.compilerSizes}>
         <div>
           <strong>
-            ~2.2 KB <small>gzip</small>
+            ~2.4 KB <small>gzip</small>
           </strong>
           <span>Compiled message runtime</span>
           <p>
@@ -31,7 +31,7 @@ export function CompilerSection() {
         </div>
         <div>
           <strong>
-            ~3.9 KB <small>gzip</small>
+            ~4.5 KB <small>gzip</small>
           </strong>
           <span>Working React i18n setup</span>
           <p>
@@ -66,8 +66,8 @@ export default defineConfig({
 });
 
 // vite.config.ts — add to your plugins
-import fluentic from '@fluentic/i18n/plugin/vite';
-// plugins: [fluentic(), react()]`}
+import fluentic from '@fluentic/i18n-compiler/vite';
+// plugins: [fluentic({ config: './i18n.config.ts' }), react()]`}
         </CodeBlock>
       </div>
       <nav className={styles.compilerLinks} aria-label='Compiler and platform guides'>

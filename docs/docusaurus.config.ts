@@ -19,6 +19,10 @@ const config: Config = {
     blog: false,
     theme: { customCss: './src/css/custom.css' },
   }]],
+  themes: [[
+    '@easyops-cn/docusaurus-search-local',
+    { hashed: 'filename', indexBlog: false, indexPages: false },
+  ]],
   themeConfig: {
     image: 'img/fluentic-social-card.svg',
     navbar: {

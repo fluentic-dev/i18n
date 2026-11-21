@@ -5,12 +5,15 @@ sidebar_label: Translation services
 
 # Translation providers
 
+Import built-in providers (`createGoogleTranslator`, `createDeepLTranslator`) from `@fluentic/i18n-cli/translators`. Core helpers (`defineConfig`, `defineTranslator`, `filterTranslator`) and all shared types, including `ProviderTranslatorOptions` and `ProviderTranslatorOptionsFactory`, remain at `@fluentic/i18n-cli`.
+
 Configure a `translator` with `defineTranslator` to integrate a translation provider or internal service. The CLI passes untranslated records to the callback and merges the returned translations by message ID. The callback receives `env(name)`, which reads `process.env` first, then `i18n.env.local`, then `i18n.env`.
 
 Pass an ordered array when a secondary service should cover language pairs unsupported by the preferred provider. The CLI calls each optional `support` predicate and uses the first matching translator:
 
 ```ts
-import { createDeepLTranslator, createGoogleTranslator, defineConfig } from '@fluentic/i18n-cli';
+import { defineConfig } from '@fluentic/i18n-cli';
+import { createDeepLTranslator, createGoogleTranslator } from '@fluentic/i18n-cli/translators';
 
 export default defineConfig({
   languages: { source: 'en', targets: ['fr', 'ga'] },
@@ -21,6 +24,30 @@ export default defineConfig({
 In this example DeepL handles its supported pairs and Google is the fallback. Provider order is significant.
 
 Automatic translation is optional. Omit `translator` to use only manual translations; see the [manual workflow](./overview#3-understand-the-translation-files).
+
+## Filter a translator's languages
+
+Use `filterTranslator` to restrict the target languages accepted by a built-in or custom translator:
+
+```ts
+import { defineConfig, filterTranslator } from '@fluentic/i18n-cli';
+import { createDeepLTranslator, createGoogleTranslator } from '@fluentic/i18n-cli/translators';
+
+export default defineConfig({
+  languages: { source: 'en', targets: ['fr', 'de', 'ja', 'vi'] },
+  translator: [
+    filterTranslator(createDeepLTranslator(), {
+      allow: ['fr', 'de', 'ja'],
+      deny: ['ja'],
+    }),
+    filterTranslator(createGoogleTranslator(), { deny: ['vi'] }),
+  ],
+});
+```
+
+DeepL handles `fr` and `de`, Google handles `ja`, and neither translator accepts `vi`. When no translator accepts a pair, the CLI reports it and skips translation for that target.
+
+`allow` and `deny` match exact target language IDs, ignoring case (`pt` and `pt-BR` are distinct). Deny takes precedence. Omit `allow` to accept all languages supported by the wrapped translator except denied languages; an empty `allow` array accepts none. The wrapper preserves the original support check, batching, and tag handling, so it cannot enable a language pair rejected by the underlying translator. It also accepts plain translation callbacks.
 
 ## Implement a translator callback
 
@@ -66,10 +93,11 @@ export const translate = defineTranslator({
 
 `support` may return a boolean or a promise. It receives the same request data as `translate`, including `sourceLanguageId`, `targetLanguageId`, `items`, and `env`. If it is omitted, the translator accepts every pair.
 
-Wire it into `defineConfig({ languages: …, translator: translate })`. For common providers, use `createGoogleTranslator()` or `createDeepLTranslator()` from `@fluentic/i18n-cli`.
+Wire it into `defineConfig({ languages: …, translator: translate })`. For common providers, use `createGoogleTranslator()` or `createDeepLTranslator()` from `@fluentic/i18n-cli/translators`.
 
 ```ts
-import { createGoogleTranslator, defineConfig } from '@fluentic/i18n-cli';
+import { defineConfig } from '@fluentic/i18n-cli';
+import { createGoogleTranslator } from '@fluentic/i18n-cli/translators';
 
 export default defineConfig({
   languages: { source: 'en', targets: ['fr'] },
@@ -104,6 +132,8 @@ The built-in DeepL adapter sets `tag: true`, so the CLI sends whole messages, in
 Both adapters use batches of 50. Google defaults to the v2 endpoint and `GOOGLE_TRANSLATE_API_KEY`; DeepL defaults to the Free endpoint and `DEEPL_API_KEY`. Both accept `apiKey`, `apiKeyEnv`, and `endpoint`, or a factory receiving `{ env }`. See [provider setup](./overview#4-automatically-translate-missing-messages).
 
 ## Retries and errors
+
+The CLI reports the failing language pair and readable guidance for missing credentials, invalid endpoints, authentication failures, rate limits, and service outages. Use `--debug` when you need technical error details.
 
 Split large batches, retry rate limits, and control concurrency inside your callback. The CLI doesn't supply those policies. A thrown error fails the command; the optional result `error` field doesn't trigger a retry or reporting by itself.
 

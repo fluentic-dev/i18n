@@ -83,6 +83,7 @@ export type TextRenderer = {
 };
 
 export type JsxRenderer<Output = unknown> = {
+  (render: () => I18nTagElement): Output;
   <Text extends string>(message: Text, params?: MessageParams): Output;
   <Text extends string, Schema extends MessageSchema | undefined>(
     message: MessageDescriptor<Text, Schema>,

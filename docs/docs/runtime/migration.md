@@ -18,7 +18,7 @@ Use `@fluentic/i18n-rn` for native setup and `@fluentic/i18n-nextjs` for Next.js
 2. Await initialization before mounting/rendering. Rendering before readiness now throws. Module-scope declarations should use `t.msg`, not formatted strings.
 3. Opt into persistence with `createLocalStorage()` or `createNativeStorage(store)` if needed.
 4. Expect language changes to commit after loading succeeds. Failures retain the old language. The manager loads base/fallback catalogs and caches successful loads.
-5. For isolated React providers, bind attribute renderers with `useI18nRenderer(t.text)`. The default browser singleton still supports plain `t.text` plus `I18nState.use()`.
+5. For reactive string props, use `I18nState.use()` for a whole-component subscription or `t.jsx(() => element)` for one fine-grained element. For isolated React providers, `useI18nRenderer(t.text)` remains useful when a component needs a bound renderer directly.
 6. For Next.js, configure the request module and await `ready()` in independent server render paths. Use provider snapshots for client hydration.
 
 Compilation is a separate opt-in: set `compiled: true`, add the bundler adapter and regenerate merged files. Auto/manual files remain unchanged. Existing review history does not need migration. Do not manually rewrite authored message literals into hashes.

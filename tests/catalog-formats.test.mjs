@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import { pathToFileURL } from 'node:url';
 import { conflict, defineConfig, extract, merge } from '../packages/cli/dist/index.mjs';
 import { createI18nManager } from '../packages/i18n/dist/adapter.js';
+import { getSnapshot } from '../packages/i18n/dist/hydration.js';
 
 const require = createRequire(import.meta.url);
 
@@ -32,9 +33,14 @@ test('catalog formats produce line-based equivalent rows and remove obsolete out
     const base = path.join(directory, 'data/translations/fr');
     const manualPath = path.join(base, 'manual.jsonl');
     const rows = (await readFile(manualPath, 'utf8')).trim().split('\n').map(JSON.parse);
-    for (const row of rows) row.translation = row.source === 'Hello' ? 'Bonjour' : 'Ouvrir';
+    for (const row of rows) row[row.length - 1] = row.length === 2 && row[0] === 'Hello' ? 'Bonjour' : 'Ouvrir';
     await writeFile(manualPath, rows.map((row) => JSON.stringify(row)).join('\n') + '\n');
+    const manualBeforeMerge = await readFile(manualPath, 'utf8');
+    const autoBeforeMerge = await readFile(path.join(base, 'auto.jsonl'), 'utf8');
     await merge(config);
+    const compiledHash = JSON.parse(await readFile(path.join(directory, 'data/translations/hash.json'), 'utf8')).fr;
+    assert.equal(await readFile(manualPath, 'utf8'), manualBeforeMerge);
+    assert.equal(await readFile(path.join(base, 'auto.jsonl'), 'utf8'), autoBeforeMerge);
 
     const jsonl = (await readFile(path.join(base, 'merged.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
     const jsonText = await readFile(path.join(base, 'merged.json'), 'utf8');
@@ -49,19 +55,28 @@ test('catalog formats produce line-based equivalent rows and remove obsolete out
     const managed = createI18nManager();
     managed.manager.setTranslationLoader(() => json);
     await managed.manager.init();
-    assert.equal(Object.keys(managed.manager.getSnapshot().translations.en).length, 2);
+    assert.equal(Object.keys(getSnapshot(managed).translations.en).length, 2);
 
     await merge({ ...config, catalogFormat: 'json' });
     for (const format of ['jsonl', 'cjs', 'mjs']) await assert.rejects(access(path.join(base, `merged.${format}`)));
     assert.deepEqual(JSON.parse(await readFile(path.join(base, 'merged.json'), 'utf8')), json);
 
-    await merge({ ...config, compiled: false, catalogFormat: 'json' });
+    const { compiled: _compiled, ...uncompiledConfig } = config;
+    await merge({ ...uncompiledConfig, catalogFormat: 'json' });
     const uncompiled = JSON.parse(await readFile(path.join(base, 'merged.json'), 'utf8'));
     assert.deepEqual(uncompiled, [['Hello', 'Bonjour'], ['menu', 'Open', 'Ouvrir'], null]);
     const regular = createI18nManager();
     regular.manager.setTranslationLoader(() => uncompiled);
     await regular.manager.init();
     assert.equal(regular.manager.getTranslation({ context: 'menu', message: 'Open' }), 'Ouvrir');
+
+    const uncompiledHash = JSON.parse(await readFile(path.join(directory, 'data/translations/hash.json'), 'utf8')).fr;
+    assert.notEqual(uncompiledHash, compiledHash);
+    await merge({ ...config, compiled: { hashLength: 7 }, catalogFormat: 'json' });
+    const changedCompilerHash = JSON.parse(
+      await readFile(path.join(directory, 'data/translations/hash.json'), 'utf8'),
+    ).fr;
+    assert.notEqual(changedCompilerHash, compiledHash);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -80,6 +95,7 @@ test('conflict rebuilds generated files and refuses to overwrite conflicted auth
       files: { includes: ['src/*.ts'] },
       catalogFormat: ['jsonl', 'json', 'cjs', 'mjs'],
     });
+    await extract(config);
     await conflict(config);
     const base = path.join(directory, 'data/translations/fr');
     const manualPath = path.join(base, 'manual.jsonl');

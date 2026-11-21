@@ -1,10 +1,10 @@
 import { t } from '@fluentic/i18n';
 import { I18nManager, I18nState } from '@fluentic/i18n-web';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { loadExampleTranslations } from './translations';
+import { translationCache } from './translations';
 
 I18nManager.configure({ languageId: 'en', fallbackLanguageId: 'en' });
-I18nManager.setTranslationLoader(loadExampleTranslations);
+I18nManager.setTranslationLoader(translationCache.loader);
 export const ready = I18nManager.init();
 
 export function I18nDemo() {
@@ -49,10 +49,15 @@ export function I18nDemo() {
             </p>
           </div>
           <div className='actions'>
-            <LanguageSelect />
+            {screen === 'overview' && <LanguageSelect />}
             <button className='primary'>{t.text('Invite teammate')}</button>
           </div>
         </header>
+        {screen === 'cases' && (
+          <div className='case-language-dock'>
+            <LanguageSelect />
+          </div>
+        )}
         {screen === 'overview'
           ? <Overview members={members} setMembers={setMembers} updatedAt={updatedAt} />
           : (
@@ -74,16 +79,18 @@ export function I18nDemo() {
 }
 
 const languageOptions = [
-  { id: 'en', label: 'English' },
-  { id: 'fr', label: 'Français' },
-  { id: 'fr-CA', label: 'Français (Canada)' },
+  { id: 'en', label: 'English', region: 'EN' },
+  { id: 'fr', label: 'Français', region: 'FR' },
+  { id: 'fr-CA', label: 'Français (Canada)', region: 'CA' },
 ];
 
 function LanguageSelect() {
   const { isLoading, languageId } = I18nState.use();
   const [open, setOpen] = useState(false);
+  const [pendingLanguageId, setPendingLanguageId] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
-  const selected = languageOptions.find((option) => option.id === languageId) ?? languageOptions[0];
+  const displayedLanguageId = pendingLanguageId ?? languageId;
+  const selected = languageOptions.find((option) => option.id === displayedLanguageId) ?? languageOptions[0];
 
   useEffect(() => {
     const close = (event: PointerEvent) => {
@@ -92,6 +99,13 @@ function LanguageSelect() {
     document.addEventListener('pointerdown', close);
     return () => document.removeEventListener('pointerdown', close);
   }, []);
+
+  const selectLanguage = (nextLanguageId: string) => {
+    setOpen(false);
+    if (pendingLanguageId || nextLanguageId === languageId) return;
+    setPendingLanguageId(nextLanguageId);
+    void I18nManager.setLanguageId(nextLanguageId).finally(() => setPendingLanguageId(null));
+  };
 
   return (
     <div className='language' ref={root}>
@@ -102,12 +116,17 @@ function LanguageSelect() {
         aria-haspopup='listbox'
         aria-expanded={open}
         aria-label={t.text('Language')}
-        aria-busy={isLoading}
-        disabled={isLoading}
+        aria-busy={isLoading || pendingLanguageId !== null}
+        disabled={isLoading || pendingLanguageId !== null}
         onClick={() => setOpen((value) => !value)}
       >
-        <span>{selected.label}</span>
-        {isLoading ? <span className='spinner' aria-label={t.text('Loading translations')} /> : <span>⌄</span>}
+        <span className='language-option-label'>
+          <span>{selected.label}</span>
+          <span className='language-region'>{selected.region}</span>
+        </span>
+        {isLoading || pendingLanguageId !== null
+          ? <span className='spinner' aria-label={t.text('Loading translations')} />
+          : <span>⌄</span>}
       </button>
       {open && (
         <div className='language-menu' role='listbox' aria-label={t.text('Language')}>
@@ -115,16 +134,16 @@ function LanguageSelect() {
             <button
               type='button'
               role='option'
-              aria-selected={option.id === languageId}
-              className={option.id === languageId ? 'selected' : ''}
+              aria-selected={option.id === displayedLanguageId}
+              className={option.id === displayedLanguageId ? 'selected' : ''}
               key={option.id}
-              onClick={async () => {
-                setOpen(false);
-                if (option.id !== languageId) await I18nManager.setLanguageId(option.id);
-              }}
+              onClick={() => selectLanguage(option.id)}
             >
-              <span>{option.label}</span>
-              {option.id === languageId && <span aria-hidden='true'>✓</span>}
+              <span className='language-option-label'>
+                <span>{option.label}</span>
+                <span className='language-region'>{option.region}</span>
+              </span>
+              {option.id === displayedLanguageId && <span aria-hidden='true'>✓</span>}
             </button>
           ))}
         </div>
@@ -261,7 +280,14 @@ function CaseLab(
     <section className='casebook'>
       <p className='case-intro'>{t.text('Each card is a reproducible behavior covered by the example test suite.')}</p>
       <div className='grid case-grid'>
-        <Case title={t.text('Plural branches')} detail={t.text('Try zero, one, and many.')}>
+        <Case
+          title={t.text('Plural branches')}
+          detail={t.text('Try zero, one, and many.')}
+          code={`t.text(
+  '{count, plural, =0 {No members} one {# member} other {# members}}',
+  { count: members },
+)`}
+        >
           <div className='segmented'>
             {[0, 1, 2, 12].map((count) => (
               <button
@@ -277,7 +303,14 @@ function CaseLab(
             {t.text('{count, plural, =0 {No members} one {# member} other {# members}}', { count: members })}
           </output>
         </Case>
-        <Case title={t.text('Select branches')} detail={t.text('Every product state has copy.')}>
+        <Case
+          title={t.text('Select branches')}
+          detail={t.text('Every product state has copy.')}
+          code={`t.text(
+  '{status, select, on_track {On track} at_risk {At risk} done {Complete} other {Unknown}}',
+  { status },
+)`}
+        >
           <CaseSelect value={status} onChange={setStatus} />
           <output>
             {t.text('{status, select, on_track {On track} at_risk {At risk} done {Complete} other {Unknown}}', {
@@ -285,18 +318,39 @@ function CaseLab(
             })}
           </output>
         </Case>
-        <Case title={t.text('Numbers and dates')} detail={t.text('Locale-aware output from real values.')}>
+        <Case
+          title={t.text('Numbers and dates')}
+          detail={t.text('Locale-aware output from real values.')}
+          code={`t.text(
+  'Invoice total: {amount, number, ::currency/EUR}',
+  { amount: 1234.5 },
+)
+
+t.text('Due {date, date, long}', { date: updatedAt })`}
+        >
           <output>{t.text('Invoice total: {amount, number, ::currency/EUR}', { amount: 1234.5 })}</output>
           <output>{t.text('Due {date, date, long}', { date: updatedAt })}</output>
         </Case>
-        <Case title={t.text('Rich text')} detail={t.text('Translators can move tagged content.')}>
+        <Case
+          title={t.text('Rich text')}
+          detail={t.text('Translators can move tagged content.')}
+          code={`t.jsx(
+  'Read the <link>integration guide</link> before shipping.',
+  { link: t.tag((chunks) => <a href='#guide'>{chunks}</a>) },
+)`}
+        >
           <output>
             {t.jsx('Read the <link>integration guide</link> before shipping.', {
               link: t.tag((chunks) => <a href='#guide'>{chunks}</a>),
             })}
           </output>
         </Case>
-        <Case title={t.text('Context')} detail={t.text('The same source can mean different things.')}>
+        <Case
+          title={t.text('Context')}
+          detail={t.text('The same source can mean different things.')}
+          code={`t.context('navigation').text('Open')
+t.context('ticket.status').text('Open')`}
+        >
           <dl>
             <div>
               <dt>{t.text('Menu action')}</dt>
@@ -311,11 +365,18 @@ function CaseLab(
         <Case
           title={t.text('Regional fallback')}
           detail={t.text('fr-CA loads the fr catalog before falling back to source copy.')}
+          code={`t.text('This sentence exists in French.')`}
         >
           <output>{t.text('This sentence exists in French.')}</output>
           <span className='hint'>fr-CA → fr → en</span>
         </Case>
-        <Case title={t.text('Source fallback')} detail={t.text('Missing translations remain readable.')}>
+        <Case
+          title={t.text('Source fallback')}
+          detail={t.text('Missing translations remain readable.')}
+          code={`t.text(
+  'This message is intentionally missing from every translated catalog.',
+)`}
+        >
           <output>{t.text('This message is intentionally missing from every translated catalog.')}</output>
           <span className='hint'>translation: missing · source: available</span>
         </Case>
@@ -363,7 +424,9 @@ function CaseSelect({ value, onChange }: { value: string; onChange: (value: stri
   );
 }
 
-function Case({ title, detail, children }: { title: string; detail: string; children: ReactNode; }) {
+function Case(
+  { title, detail, code, children }: { title: string; detail: string; code: string; children: ReactNode; },
+) {
   return (
     <article className='card test-case'>
       <div className='card-head'>
@@ -372,6 +435,9 @@ function Case({ title, detail, children }: { title: string; detail: string; chil
           <h2>{title}</h2>
           <p>{detail}</p>
         </div>
+      </div>
+      <div className='case-code'>
+        <pre><code>{code}</code></pre>
       </div>
       <div className='case-result'>{children}</div>
     </article>

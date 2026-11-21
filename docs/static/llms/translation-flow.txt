@@ -1,0 +1,110 @@
+# Extraction and translation workflow
+
+## Generated layout
+
+With `output: 'i18n'`:
+
+```text
+i18n/
+├── cache.local/                 # disposable; ignore
+└── translations/
+    ├── hash.json                # generated runtime hashes
+    ├── meta.jsonl               # shared source metadata
+    └── fr/
+        ├── manual.jsonl         # human/reviewed translations
+        ├── auto.jsonl           # provider translations
+        └── merged.jsonl         # generated runtime catalog
+```
+
+Never edit `merged.jsonl` directly.
+
+## Manual workflow
+
+```sh
+pnpm i18n:extract
+```
+
+The extractor finds static `t.msg()`, `t.text()`, and `t.jsx(message)` calls. For `t.jsx(() => element)`, the outer callback is not a message; nested literal message calls are extracted normally.
+
+Edit the last tuple value in `manual.jsonl`:
+
+```jsonl
+["Save changes","Enregistrer les modifications"]
+["checkout","Continue","Continuer"]
+```
+
+Then rebuild:
+
+```sh
+pnpm i18n:merge
+```
+
+Manual non-empty translations override automatic translations. Empty translations are omitted from runtime catalogs and fall back to source.
+
+## Automatic translation
+
+Configure a translator only when requested. `update` performs extract, translates records missing from both layers, and merges:
+
+```sh
+pnpm i18n:update
+```
+
+Provider results go to `auto.jsonl`; they never overwrite non-empty manual translations. Keep API keys in `i18n.env.local` or process environment and never commit them.
+
+## Context and metadata output
+
+```tsx
+t.context('checkout')
+  .note('Primary payment action')
+  .meta({ screen: 'checkout' })
+  .jsx('Continue');
+```
+
+- Context plus source forms identity.
+- Notes and metadata go to `meta.jsonl`.
+- Translation rows remain readable source/translation tuples.
+
+## Hash manifest
+
+`merge` and `update` regenerate `hash.json` from final runtime rows. Translation changes and compiler options that alter emitted catalogs change the hash. Notes, metadata, and serialization whitespace do not.
+
+Hashes are cache-change hints, not cryptographic integrity checks. Deploy each catalog with its matching manifest.
+
+## Conflict handling
+
+Resolve authoring-file conflicts, then run:
+
+```sh
+pnpm i18n conflict
+```
+
+The command refuses unresolved markers or invalid records and regenerates configured runtime formats after authoring files are valid.
+
+
+## Provider and converter imports
+
+Core helpers and all shared types belong to `@fluentic/i18n-cli`. Concrete providers and built-in converter objects belong to subpaths:
+
+```ts
+import { defineConfig, defineTranslator, filterTranslator } from '@fluentic/i18n-cli';
+import { createGoogleTranslator, createDeepLTranslator } from '@fluentic/i18n-cli/translators';
+import { jsonConverter, csvConverter, xliffConverter } from '@fluentic/i18n-cli/converters';
+```
+
+The provider aliases `googleTranslate` and `deeplTranslate` are removed. `filterTranslator(provider, { allow, deny })` restricts target IDs without overriding the provider's own support check. Matching ignores case; deny takes precedence.
+
+## Exchange and handoff
+
+Built-in formats are `json`, `csv`, `xliff`, and `handoff`. They require no config.convert entry. A custom converter with the same name overrides the built-in.
+
+```sh
+pnpm i18n export handoff
+pnpm i18n import handoff
+pnpm i18n merge
+```
+
+The default handoff folder is `<output>/<dirs.exports>/handoff`. Use `--output <folder>` on export or `--input <folder>` on import for a different folder. Export refreshes missing-message inputs and preserves existing output for the agent to update. Import validates freshness, source identities, and ICU contracts before writing. Re-export old manifests after upgrading to the renamed handoff format.
+
+## Command reporting
+
+Extraction reports file/cache/message counts even on fully cached runs. Other commands report outcomes, translation counts, and locations. Warnings and readable errors go to stderr. Failures return status 1 without a stack trace; use `--debug` for technical details. Unknown converters list available formats. Programmatic APIs still reject with errors.

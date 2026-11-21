@@ -53,9 +53,13 @@ export function ApiSection() {
             For JSX tags, <code>t.tag()</code>{' '}
             keeps the element in your code while translators can move the tagged content within the sentence.
           </p>
+          <p>
+            For one element with translated string props, <code>{'t.jsx(() => element)'}</code>{' '}
+            creates a fine-grained language update boundary without rerendering its parent component.
+          </p>
         </div>
         <CodeBlock language='tsx'>
-          {"// Direct JSX output\nt.jsx('Welcome, {name}!', { name: 'Ada' });\n\n// Direct string output\nt.text('Welcome, {name}!', { name: 'Ada' });\n\n// Direct JSX with a tag\nt.jsx('Read <link>the guide</link>.', {\n  link: t.tag(<a href=\"/docs\" />),\n});"}
+          {"// Direct JSX output\nt.jsx('Welcome, {name}!', { name: 'Ada' });\n\n// Direct string output\nt.text('Welcome, {name}!', { name: 'Ada' });\n\n// One reactive element with string props\nt.jsx(() => (\n  <input placeholder={t.text('Search')} />\n));\n\n// Direct JSX with a tag\nt.jsx('Read <link>the guide</link>.', {\n  link: t.tag(<a href=\"/docs\" />),\n});"}
         </CodeBlock>
       </div>
     </section>

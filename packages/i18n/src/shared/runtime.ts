@@ -20,6 +20,7 @@ export type Runtime = {
   registry: RegistryConfig;
   jsxLineBreak: unknown;
   jsxHandler: ((options: MessageFormatOptions, render: PartsRenderer) => unknown) | null;
+  jsxCallbackHandler: ((render: () => unknown) => unknown) | null;
   tagElement: ((element: unknown) => (chunks: unknown[]) => unknown) | null;
   subscribe: (listener: () => void) => () => void;
   getSnapshot: () => unknown;
@@ -35,6 +36,7 @@ export function createRuntime(): Runtime {
     registry: { number: {}, date: {}, time: {} },
     jsxLineBreak: '\n',
     jsxHandler: null,
+    jsxCallbackHandler: null,
     tagElement: null,
     subscribe: () => () => {},
     getSnapshot: () => null,
@@ -66,6 +68,14 @@ export function setFormats(formats: Partial<Formats>): void {
 
 export function setGetJsxHandler(handler: Runtime['jsxHandler']): void {
   getRuntime().jsxHandler = handler;
+}
+
+export function renderJsxCallback(render: () => unknown): unknown {
+  const handler = getRuntime().jsxCallbackHandler;
+
+  if (!handler) throw new Error('[i18n] t.jsx callbacks require a platform adapter');
+
+  return handler(render);
 }
 
 export const I18nRegistry = {

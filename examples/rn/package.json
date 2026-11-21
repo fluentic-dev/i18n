@@ -5,7 +5,8 @@
     "build": "node build.mjs",
     "dev": "expo start",
     "android": "expo start --android",
-    "ios": "expo start --ios"
+    "ios": "expo start --ios",
+    "i18n:update": "fluentic-i18n --config i18n.config.ts update"
   },
   "dependencies": {
     "@fluentic/i18n": "workspace:*",
@@ -19,6 +20,7 @@
     "@babel/preset-typescript": "^7.28.4",
     "@babel/preset-react": "^7.28.0",
     "babel-preset-expo": "~55.0.0",
+    "@fluentic/i18n-compiler": "workspace:*",
     "@fluentic/i18n-cli": "workspace:*"
   },
   "main": "index.js"

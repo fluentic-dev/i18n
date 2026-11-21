@@ -1,0 +1,70 @@
+# Compact Fluentic API reference
+
+## Messages
+
+```ts
+t.msg(source, schema?)                 // inert typed descriptor
+t.text(sourceOrDescriptor, params?)    // current-language string
+t.jsx(sourceOrDescriptor, params?)     // reactive React content
+t.jsx(() => element)                   // fine-grained reactive element boundary
+t.context(name)                        // identity scope
+t.note(text)                           // translator guidance
+t.meta(jsonValue)                      // structured extraction metadata
+t.tag(handlerOrElement)                // rich-message tag handler
+t.try(renderer, value, params?)        // render descriptors; return other values
+t.clone(descriptor)                    // copy descriptor
+t.params(params?)                      // same params or {}
+t.notranslate(callback)                // source fallback with active-locale formatting
+```
+
+`t.msg`, `t.text`, and message-form `t.jsx` require static sources for extraction. Callback-form `t.jsx` is a boundary; its nested message calls are extracted.
+
+## Manager
+
+```ts
+I18nManager.configure({ languageId, fallbackLanguageId? })
+I18nManager.setStorage(adapterOrNull)
+I18nManager.setTranslationLoader(loaderOrNull)
+await I18nManager.init()
+await I18nManager.setLanguageId(languageId)
+I18nManager.getLanguageId()
+I18nManager.getTranslation({ languageId?, context?, message })
+```
+
+Configure before `init()`. Initialize before mounting React. A failed switch retains the old active language.
+
+## State
+
+```ts
+I18nState.get()                 // {languageId, isLoading, ready}
+I18nState.use()                 // React whole-component subscription
+I18nState.subscribe(listener)   // returns unsubscribe
+```
+
+## Loaders and browser cache
+
+```ts
+const loader = defineTranslationLoader({
+  en: [],
+  fr: () => import('./fr.jsonl?raw'),
+});
+
+const cache = createTranslationCacheLoader(loader, {
+  hash: () => import('./hash.json'),
+  storageKey: 'my-app:i18n',
+});
+
+I18nManager.setTranslationLoader(cache.loader);
+cache.remove('fr');
+cache.clear();
+```
+
+Cache controls affect persistent data. Replace the manager loader and initialize again to clear/reload in-memory catalogs.
+
+## Isolated runtimes and hydration
+
+```ts
+const instance = createI18nManager(); // {manager, state, runtime}
+```
+
+Initialize and pass `instance` to `I18nProvider`. Custom SSR adapters import `getSnapshot` and `hydrate` from `@fluentic/i18n/hydration`. SPAs do not use hydration APIs. Next.js owns hydration internally.

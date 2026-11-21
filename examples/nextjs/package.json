@@ -3,23 +3,31 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build --webpack",
-    "build:turbo": "next build --turbopack",
+    "dev": "pnpm dev:cookie",
+    "dev:cookie": "NEXT_PUBLIC_I18N_LANGUAGE_MODE=cookie next dev",
+    "dev:url": "NEXT_PUBLIC_I18N_LANGUAGE_MODE=url next dev",
+    "build": "pnpm build:cookie",
+    "build:cookie": "NEXT_PUBLIC_I18N_LANGUAGE_MODE=cookie next build --webpack",
+    "build:url": "NEXT_PUBLIC_I18N_LANGUAGE_MODE=url next build --webpack",
+    "build:turbo": "pnpm build:turbo:cookie",
+    "build:turbo:cookie": "NEXT_PUBLIC_I18N_LANGUAGE_MODE=cookie next build --turbopack",
+    "build:turbo:url": "NEXT_PUBLIC_I18N_LANGUAGE_MODE=url next build --turbopack",
+    "i18n:update": "fluentic-i18n --config i18n.config.ts update",
     "start": "next start"
   },
   "dependencies": {
     "@fluentic/i18n": "workspace:*",
     "@fluentic/i18n-nextjs": "workspace:*",
-    "next": "^16.0.0",
+    "next": "^16.4.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@fluentic/i18n-cli": "workspace:*",
+    "@fluentic/i18n-compiler": "workspace:*",
     "@types/node": "^22.15.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.0.0",
-    "typescript": "^5.9.3",
-    "@fluentic/i18n-cli": "workspace:*"
+    "typescript": "^7.0.2"
   }
 }

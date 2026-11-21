@@ -8,25 +8,33 @@ description: Enable the standalone Fluentic compiler in Vite, Rollup, esbuild, w
 
 All adapters call the same standalone compiler. It parses its own JS/TS/JSX/TSX, follows same-file bindings back to Fluentic imports, and returns transformed source with source maps. Your bundler still handles TypeScript stripping, JSX transforms, and application bundling.
 
-First install `@fluentic/i18n` and your platform adapter, add `@fluentic/i18n-cli` as a development dependency, and enable `compiled: true` in [the shared configuration](./compilation#enable-the-pipeline). The compiler plugins ship as subpaths of the runtime package; they are used at build time only.
+First install `@fluentic/i18n` and your platform adapter, add the CLI and compiler as development dependencies, and enable `compiled: true` in [the shared configuration](./compilation#enable-the-pipeline):
+
+```sh
+pnpm add -D @fluentic/i18n-cli @fluentic/i18n-compiler
+```
+
+The compiler is a separate Node-only package, so its filesystem, Babel, and Node types do not enter the runtime package boundary. Its build integrations are exported as compiler subpaths and are used only during builds.
 
 Continue writing `import {t} from '@fluentic/i18n'`. Do not manually change source calls to `/compiled`: that entry accepts generated payloads, not message literals.
 
 ## Vite
 
 ```ts title="vite.config.ts"
-import fluentic from '@fluentic/i18n/plugin/vite';
+import fluentic from '@fluentic/i18n-compiler/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-export default defineConfig({ plugins: [fluentic(), react()] });
+export default defineConfig({
+  plugins: [fluentic({ config: './i18n.config.ts' }), react()],
+});
 ```
 
-The plugin runs before other source transforms. It loads direct `.jsonl` imports as text; Vite's `?raw` imports continue to return text. See [the complete React web guide](./react-web).
+The plugin runs before other source transforms. Catalogs use the bundler's normal JSON or JavaScript module handling; Vite's `?raw` imports remain available when JSONL text is intentionally used. See [the complete React web guide](./react-web).
 
 ## Rollup
 
 ```js title="rollup.config.mjs"
-import fluentic from '@fluentic/i18n/plugin/rollup';
+import fluentic from '@fluentic/i18n-compiler/rollup';
 export default {
   input: 'src/main.js',
   output: { file: 'dist/main.js', format: 'esm', sourcemap: true },
@@ -39,7 +47,7 @@ Put Fluentic before your existing TypeScript/JSX transpilers. Keep the resolutio
 ## esbuild
 
 ```js title="build.mjs"
-import fluentic from '@fluentic/i18n/plugin/esbuild';
+import fluentic from '@fluentic/i18n-compiler/esbuild';
 import { build } from 'esbuild';
 await build({
   entryPoints: ['src/main.tsx'],
@@ -57,7 +65,7 @@ Fluentic transforms source in `onLoad`; esbuild then handles TS/JSX. Avoid assig
 ## webpack
 
 ```js title="webpack.config.mjs"
-import FluenticI18nPlugin from '@fluentic/i18n/plugin/webpack';
+import FluenticI18nPlugin from '@fluentic/i18n-compiler/webpack';
 export default {
   mode: 'production',
   entry: './src/main.js',
@@ -66,13 +74,13 @@ export default {
 };
 ```
 
-The plugin installs a pre-loader and composes source maps. Keep your existing Babel, SWC, or TypeScript loader for the remaining JS/TS/JSX processing. Both direct `.jsonl` imports and source files are handled by the Fluentic loader.
+The plugin installs a pre-loader for source files and composes source maps. Keep your existing Babel, SWC, or TypeScript loader for the remaining JS/TS/JSX processing. Catalogs use standard JSON, MJS, or CJS imports and do not pass through the Fluentic loader.
 
 ## Babel
 
 ```js title="babel.config.cjs"
 module.exports = {
-  plugins: ['@fluentic/i18n/plugin/babel'],
+  plugins: ['@fluentic/i18n-compiler/babel'],
 };
 ```
 
@@ -86,19 +94,19 @@ Each generic plugin accepts:
 
 ```ts
 {
-  config: './i18n.config.ts', // Optional path, relative to the app working directory.
-  compiled: true,           // Optional explicit override of shared config.
+  config: './any/path/i18n.config.ts', // Optional path, relative to the plugin working directory.
+  hashLength: 8,                      // Optional override of compiled.hashLength from selected config.
   includeDependencies: true // Optional; dependencies are excluded by default.
 }
 ```
 
-For Babel, pass options as `['@fluentic/i18n/plugin/babel', options]`. For webpack, use `new FluenticI18nPlugin(options)`; other bundler factories accept `fluentic(options)`.
+For Babel, pass options as `['@fluentic/i18n-compiler/babel', options]`. For webpack, use `new FluenticI18nPlugin(options)`; other bundler factories accept `fluentic(options)`.
 
-With no override, plugins read `i18n.config.ts`, `.js`, or `.mjs` from the app working directory. Compilation is disabled when no config enables it. The CLI and plugin must use the same compilation mode. Regenerate merged catalogs and restart the development server after changing mode.
+Plugins never assume where the i18n config lives. Pass `config` to share `compiled.hashLength`, pass `hashLength` directly, or omit both to use the default. A direct `hashLength` overrides the selected config. A compiler plugin always compiles; adding the plugin is the build-time opt-in, so plugin options have no `compiled` boolean. The CLI still needs `compiled: true` or `compiled: { hashLength }` to emit matching compiled catalogs. Regenerate merged catalogs and restart the development server after changing mode or hash length.
 
 Compile shared-library source when publishing, or include source dependencies in the consuming build. Runtime import rewriting cannot compile messages hidden inside opaque prebuilt dependencies. Export message descriptors between files, not scoped translators; [same-file tracing](./compilation#same-file-tracing) is intentional.
 
-Next.js uses its own [single configuration wrapper](./nextjs), which configures both webpack and Turbopack. React Native uses `@fluentic/i18n-rn/plugin/babel`. Do not add the generic plugin again when a framework adapter already installs it.
+Next.js uses `@fluentic/i18n-compiler/nextjs`, which configures both webpack and Turbopack. React Native uses `@fluentic/i18n-compiler/babel` directly.
 
 ## Run the examples
 

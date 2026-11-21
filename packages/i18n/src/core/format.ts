@@ -1,7 +1,6 @@
-import { sha256 } from '@noble/hashes/sha256';
-import { bytesToHex } from '@noble/hashes/utils';
 import { IntlMessageFormat } from 'intl-messageformat';
 import { createFormatting } from '../shared/formatting';
+import { messageHash } from '../shared/hash';
 import { interpret } from '../shared/interpreter';
 
 const cache = new Map<string, IntlMessageFormat>();
@@ -29,7 +28,7 @@ const formatting = /* @__PURE__ */ createFormatting(
     );
   },
   false,
-  (context, message) => bytesToHex(sha256(context ? `${context}\0${message}` : message)).slice(0, 24),
+  (context, message) => messageHash(context ? `${context}\0${message}` : message),
 );
 export * from '../shared/runtime';
 
