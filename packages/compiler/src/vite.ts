@@ -1,7 +1,19 @@
+import { createTransformHookFilter } from './filter';
 import type { PluginOptions } from './options';
 import rollup from './rollup';
 
+export type { PluginOptions } from './options';
+
 export default function fluentic(options: PluginOptions = {}) {
-  // Vite uses the Rollup-compatible compiler adapter.
-  return { ...rollup(options), enforce: 'pre' as const };
+  const adapter = rollup(options);
+  return {
+    ...adapter,
+    enforce: 'pre' as const,
+    transform: {
+      // Config can change during watch mode. Keep native filtering broad in that
+      // case; the adapter always checks the current authoritative shared filter.
+      filter: options.config ? { id: {} } : createTransformHookFilter(options),
+      handler: adapter.transform,
+    },
+  };
 }

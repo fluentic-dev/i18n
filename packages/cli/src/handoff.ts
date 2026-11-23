@@ -4,6 +4,8 @@ import { lstat, mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 
 import path from 'node:path';
 import { extractWithCache } from './cache';
 import { type I18nConfig, prepareConfig } from './config';
+import { displayPath } from './display-path';
+import { errorMessage, GuidanceError } from './errors';
 import type { Reporter } from './events';
 import { parseExchangeJson as parseJson } from './exchange-json';
 import { noSymlinks } from './exchange-paths';
@@ -74,7 +76,11 @@ function checkLanguages(languages: string[]) {
   }
 }
 
-export async function exportHandoff(config: I18nConfig, options: HandoffOptions = {}): Promise<string> {
+export async function exportHandoff(
+  config: I18nConfig,
+  options: HandoffOptions = {},
+  report?: Reporter,
+): Promise<string> {
   const prepared = prepareConfig(config);
   const root = directory(config, options);
   checkLanguages(prepared.languages.targets);
@@ -139,6 +145,15 @@ export async function exportHandoff(config: I18nConfig, options: HandoffOptions 
     const manual = await readRecords(paths.manual, messages);
     const existing = new Set([...auto, ...manual].filter((item) => item.translation).map((item) => item.id));
     const missing = messages.filter((item) => !existing.has(item.id));
+    report?.({
+      type: 'info',
+      message: `${language}: ${missing.length} missing translations`,
+      details: {
+        [language]: missing.length
+          ? `${missing.length} missing · input/${language}.json`
+          : 'up to date; no missing translations',
+      },
+    });
     if (!missing.length) continue;
     const input: Record<string, string> = {};
     for (const item of missing) {
@@ -170,7 +185,7 @@ export async function exportHandoff(config: I18nConfig, options: HandoffOptions 
     try {
       const stat = await lstat(file);
       if (name.endsWith('.json') ? !stat.isFile() : !stat.isDirectory()) {
-        throw new Error(`Unexpected handoff path type: ${file}`);
+        throw new Error(`Unexpected handoff path type: ${displayPath(file)}`);
       }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
@@ -211,9 +226,28 @@ export async function exportHandoff(config: I18nConfig, options: HandoffOptions 
   } finally {
     if (canClean) await rm(stage, { recursive: true, force: true });
   }
-  return files.size
+  const instructions = files.size
     ? guide(root, prepared.languages.source)
-    : `No missing translations. Input folder refreshed: ${path.join(root, 'input')}. Existing output was preserved.\n`;
+    : `No missing translations. Input folder refreshed: ${
+      displayPath(path.join(root, 'input'))
+    }. Existing output was preserved.\n`;
+  const missingCount = Object.values(manifest.languages).reduce((total, entry) => total + entry.keys.length, 0);
+  report?.({
+    type: 'info',
+    message: 'Handoff prepared',
+    details: {
+      Messages: `${missingCount} missing ${missingCount === 1 ? 'translation' : 'translations'}`,
+      Files: `${files.size} ${files.size === 1 ? 'locale file' : 'locale files'} prepared`,
+      Input: displayPath(path.join(root, 'input')),
+      Output: `${displayPath(path.join(root, 'output'))} (existing results preserved)`,
+    },
+  });
+  for (const file of [...files.keys(), 'manifest.json', ...(Object.keys(context).length ? ['context.json'] : [])]) {
+    report?.({ type: 'file:processed', file: path.join(root, file) });
+  }
+  if (files.size) report?.({ type: 'info', message: 'Copy this to your coding agent', block: instructions });
+  else report?.({ type: 'info', message: 'No missing translations; nothing to send to your coding agent.' });
+  return instructions;
 }
 
 // Compare semantic ICU contracts, allowing reordered text and locale-specific plural categories.
@@ -280,7 +314,7 @@ export async function importHandoff(
     validateManifest(value);
     manifest = value;
   } catch (error) {
-    throw new Error(`Cannot read handoff manifest: ${String(error)}\nExport a fresh handoff.`);
+    throw new Error(`Cannot read handoff manifest: ${errorMessage(error)}\nExport a fresh handoff.`);
   }
   const messages = await readMeta(getPaths(prepared).meta);
   const current = await extractWithCache(prepared, () => {});
@@ -294,7 +328,11 @@ export async function importHandoff(
     );
   }
   if (!Object.keys(manifest.languages).length) {
-    report?.({ type: 'info', message: 'No missing translations in this handoff; nothing to import.' });
+    report?.({
+      type: 'info',
+      message: 'No missing translations in this handoff; nothing to import.',
+      details: { Imported: '0', Files: '0 updated', Status: 'No missing translations; nothing to import' },
+    });
     return;
   }
   const byId = new Map(messages.map((item) => [item.id, item]));
@@ -303,6 +341,7 @@ export async function importHandoff(
   }
   const errors: string[] = [];
   const pending: Array<{ file: string; before: string; after: string; }> = [];
+  let importedCount = 0;
   const expectedFiles = new Set(Object.keys(manifest.languages).map((language) => `${language}.json`));
   for (const folder of ['input', 'output']) {
     const dir = path.join(root, folder);
@@ -314,7 +353,7 @@ export async function importHandoff(
         }
       }
     } catch (error) {
-      errors.push(`${folder}: cannot read folder: ${String(error)}`);
+      errors.push(`${folder}: cannot read folder: ${errorMessage(error)}`);
     }
     if (folder === 'input' && errors.length) {
       throw new Error(
@@ -346,14 +385,14 @@ export async function importHandoff(
         throw new Error('Input was changed. Export a fresh handoff.');
       }
     } catch (error) {
-      throw new Error(`input/${language}.json: ${String(error)} No translations were changed.`);
+      throw new Error(`input/${language}.json: ${errorMessage(error)} No translations were changed.`);
     }
     try {
       const parsed = parseJson(await contents(path.join(root, 'output', `${language}.json`)));
       if (!object(parsed)) throw new Error('Expected a JSON object of translated strings');
       output = parsed;
     } catch (error) {
-      errors.push(`output/${language}.json: ${String(error)}`);
+      errors.push(`output/${language}.json: ${errorMessage(error)}`);
       continue;
     }
     const expected = new Set(entry.keys);
@@ -361,6 +400,7 @@ export async function importHandoff(
       if (!expected.has(key)) errors.push(`${language}.json / ${JSON.stringify(key)}: unexpected key; remove it`);
     }
     const replacements = new Map<string, string>();
+    const identical: string[] = [];
     for (const key of entry.keys) {
       const value = output[key];
       const item = byId.get(manifest.entries[key])!;
@@ -379,16 +419,22 @@ export async function importHandoff(
           );
         }
       } catch (error) {
-        errors.push(`${language}.json / ${key}: ${String(error)}`);
+        errors.push(`${language}.json / ${key}: ${errorMessage(error)}`);
         continue;
       }
       replacements.set(item.id, value);
       if (value === item.source) {
-        report?.({
-          type: 'warning',
-          message: `${language}.json / ${key}: translation matches source; verify that this is intentional`,
-        });
+        identical.push(key);
       }
+    }
+    if (identical.length) {
+      report?.({
+        type: 'warning',
+        message: `${language}.json: ${identical.length} ${
+          identical.length === 1 ? 'translation matches' : 'translations match'
+        } the source; verify that this is intentional`,
+        details: identical.map((key) => `${language}.json / ${key}`),
+      });
     }
     const merged = new Map(manual.map((item) => [item.id, item]));
     for (const [id, translation] of replacements) merged.set(id, { ...byId.get(id)!, translation, origin: 'imported' });
@@ -398,13 +444,22 @@ export async function importHandoff(
         : [item.source, item.translation]
     ));
     pending.push({ file: paths.manual!, before, after });
+    importedCount += replacements.size;
+    report?.({
+      type: 'info',
+      message: `${language}: ${replacements.size} translations validated`,
+      details: {
+        [language]: `${replacements.size}/${entry.keys.length} validated`,
+      },
+    });
   }
   if (errors.length) {
-    throw new Error(
-      `Import failed. No translations were changed.\n\nCopy this to your coding agent:\n` +
-        `Fix files in ${JSON.stringify(path.join(root, 'output'))} using ${
-          JSON.stringify(path.join(root, 'input'))
-        } as reference.\n` +
+    throw new GuidanceError(
+      'Handoff validation failed. No translations were changed.',
+      'Copy this to your coding agent',
+      `Fix files in ${JSON.stringify(path.join(root, 'output'))} using ${
+        JSON.stringify(path.join(root, 'input'))
+      } as reference.\n` +
         'Preserve valid translations. Do not edit input or manifest.json. Write corrected JSON files directly to output.\n' +
         errors.map((error) => `- ${error}`).join('\n'),
     );
@@ -415,7 +470,7 @@ export async function importHandoff(
   try {
     for (const item of pending) {
       if (await contents(item.file) !== item.before) {
-        throw new Error(`Translation changed during import: ${item.file}; retry with a fresh handoff`);
+        throw new Error(`Translation changed during import: ${displayPath(item.file)}; retry with a fresh handoff`);
       }
       const temp = `${item.file}.${randomUUID()}.tmp`;
       staged.push({ file: item.file, temp, before: item.before });
@@ -434,4 +489,13 @@ export async function importHandoff(
   } finally {
     for (const item of staged) await rm(item.temp, { force: true });
   }
+  for (const item of pending) report?.({ type: 'file:processed', file: item.file });
+  report?.({
+    type: 'info',
+    message: 'Handoff imported',
+    details: {
+      Imported: String(importedCount),
+      Files: `${pending.length} updated`,
+    },
+  });
 }

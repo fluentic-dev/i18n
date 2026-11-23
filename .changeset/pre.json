@@ -13,10 +13,12 @@
   },
   "changesets": [
     "beta-two",
-    "first-public-beta",
     "builtin-exchange-formats",
     "cli-friendly-reporting",
+    "cli-polished-output",
+    "compiler-package-filters",
     "filter-translator",
+    "first-public-beta",
     "handoff",
     "refresh-handoff-input",
     "translation-cache-storage-mode",

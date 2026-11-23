@@ -1,0 +1,36 @@
+{
+  "fingerprintVersion": 1,
+  "tag": "beta",
+  "packages": {
+    "@fluentic/i18n": {
+      "version": "0.1.0-beta.2",
+      "checksum": "f5abd5b2c673b260a51dec05114191e7f236344c58e7dd031ba04d85716faa39",
+      "integrity": "sha512-xLtitrEPhvKDQkWK4x1kxP9680vbC70xVy13XKqOtEO7AaRr4g17G5P44m8mY+PjfKbnnEaPrwPAUy6fbos2mQ=="
+    },
+    "@fluentic/i18n-compiler": {
+      "version": "0.1.0-beta.2",
+      "checksum": "42ce8d22bc122ef6516c0296251cf91916d7e0302b105847a673abf053ba3d44",
+      "integrity": "sha512-Wng99VAzpbyYKbD3/KAx4EQwCZBGxYn5Sw+RBpT41oAmu6wNRuvyQOqyNqxx2BffcihV/eoQ2RTuLtnhGvg8Aw=="
+    },
+    "@fluentic/i18n-cli": {
+      "version": "0.1.0-beta.2",
+      "checksum": "3ab331dc63e2995a62f6ab4f72778e51f6e251e3f9ae127fefa59db51e89d1ec",
+      "integrity": "sha512-OFKCKSvmBr2VW4uaryuZ48pqQ844z3ogL5cW4BfEm78DJCwikRiMcI0x1LJiolLIUBPDeQsGG0uNsTIv99MEvA=="
+    },
+    "@fluentic/i18n-nextjs": {
+      "version": "0.1.0-beta.2",
+      "checksum": "bd3e5c3ed56650f40b2515479e59850c8969629b4d2e28a9d4846b055fb226dd",
+      "integrity": "sha512-DHQfxhBN0aGj3EmqsncKJk3ZepgV9gxOTVAEVKuKZlcMGAUWLxmI8uKsNgR1EvMFqxScdjlmVQdojLuTLVhlfw=="
+    },
+    "@fluentic/i18n-rn": {
+      "version": "0.1.0-beta.2",
+      "checksum": "52c0d14f33ec19d2eaaefc675ec5fea605ae535fa0d385d8d99e78c5dc05eeed",
+      "integrity": "sha512-h4GPHbFpmNqdqEGmsbjzbkLdrHyU5Pff69XP8GEoxZldvAf3J6Fm+gQztPaB3ldDphEltzKVESBKVYD5C2IRfA=="
+    },
+    "@fluentic/i18n-web": {
+      "version": "0.1.0-beta.2",
+      "checksum": "c3eaf1a71d7fdd64637f449be1003f65e1536cef55c69e1eb6c31c74812a7139",
+      "integrity": "sha512-Hvq+B6PtG/HOKKlg0MLS+54hBrv3CUvwdfP5Te0BcqPkaAqMoX6X9WT0+rWG+jmFIl3LZ5Xh/iipyKhLVBiLOw=="
+    }
+  }
+}

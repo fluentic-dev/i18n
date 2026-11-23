@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { I18nConfig } from './config';
+import { displayPath } from './display-path';
 import { parseJsonl, serializeJsonl } from './jsonl';
 import type { MessageMetadata, MessageRecord, MetaTuple, TranslationRecord, TranslationTuple } from './types';
 
@@ -38,13 +39,13 @@ async function readJsonl(file: string | undefined): Promise<unknown[]> {
   }
 
   if (/^(?:<{7}|={7}|>{7}|\|{7})(?:\s|$)/m.test(text)) {
-    throw new Error(`[i18n] unresolved merge conflict in ${file}; resolve it before continuing`);
+    throw new Error(`[i18n] unresolved merge conflict in ${displayPath(file)}; resolve it before continuing`);
   }
 
   try {
     return parseJsonl(text);
   } catch (error) {
-    throw new Error(`[i18n] invalid translation file ${file}: ${String(error)}`);
+    throw new Error(`[i18n] invalid translation file ${displayPath(file)}: ${String(error)}`);
   }
 }
 
@@ -69,7 +70,7 @@ export async function readMeta(file: string): Promise<MessageRecord[]> {
       throw new TypeError('expected message metadata rows');
     });
   } catch (error) {
-    throw new Error(`[i18n] invalid metadata file ${file}: ${String(error)}`);
+    throw new Error(`[i18n] invalid metadata file ${displayPath(file)}: ${String(error)}`);
   }
 }
 
@@ -77,6 +78,7 @@ export async function readRecords(
   file: string | undefined,
   messages?: MessageRecord[],
 ): Promise<TranslationRecord[]> {
+  if (!file) return [];
   const metadata = new Map(messages?.map((item) => [recordId(item.context, item.source), item]));
   const origin = file && path.basename(file) === 'manual.jsonl' ? 'manual' : 'auto';
   const rows = await readJsonl(file);
@@ -107,7 +109,7 @@ export async function readRecords(
       throw new TypeError('expected translation rows');
     });
   } catch (error) {
-    throw new Error(`[i18n] invalid translation file ${file}: ${String(error)}`);
+    throw new Error(`[i18n] invalid translation file ${displayPath(file)}: ${String(error)}`);
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n-web",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.3",
   "description": "React web bindings and browser persistence for Fluentic i18n.",
   "license": "MIT",
   "type": "module",

@@ -81,7 +81,7 @@ The compiler follows bindings back to the actual Fluentic `t` import. It removes
 
 Scoped translators must remain local and must not be reassigned, exported, or passed into unknown functions. Repeat the context in another file. Descriptors created by `t.msg()` can be exported normally. Dynamic ICU strings require the normal runtime; the compiled runtime rejects them rather than importing a parser silently.
 
-Normal imports of `t` are rewritten to `/compiled`; adapter imports remain unchanged. Already compiled imports are untouched. Dependencies are excluded by default. Compile shared libraries when publishing, or use `includeDependencies: true` in a supported bundler adapter when consuming source dependencies. Import rewriting alone cannot compile opaque prebuilt libraries.
+Normal imports of `t` are rewritten to `/compiled`; adapter imports remain unchanged. Already compiled imports are untouched. Dependencies are excluded by default. Compile shared libraries when publishing, or use `includePackages: ['@acme/ui']` in a bundler adapter when consuming source dependencies. Import rewriting alone cannot compile opaque prebuilt libraries.
 
 ## Examples
 

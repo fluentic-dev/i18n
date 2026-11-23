@@ -1,5 +1,15 @@
 # @fluentic/i18n-compiler
 
+## 0.1.0-beta.3
+
+### Minor Changes
+
+- Add shared file and package filtering across compiler adapters, including include/exclude globs and regular expressions, includePackages/excludePackages with exact nested package ownership, and a native Vite transform hook prefilter. Preserve includeDependencies support and reload shared filters when watched config changes.
+
+### Patch Changes
+
+- @fluentic/i18n@0.1.0-beta.3
+
 ## 0.1.0-beta.2
 
 ### Patch Changes

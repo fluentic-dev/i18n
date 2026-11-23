@@ -4,6 +4,7 @@ import path from 'node:path';
 import { type ExtractStats, extractWithCache } from './cache';
 import { getConfigEnv, type I18nConfig, prepareConfig } from './config';
 import { resolveConverter } from './converters';
+import { displayPath } from './display-path';
 import { contextualError, errorMessage } from './errors';
 import type { Reporter } from './events';
 import { noSymlinks } from './exchange-paths';
@@ -21,6 +22,10 @@ import type {
 export async function extract(config: I18nConfig, report?: Reporter): Promise<MessageRecord[]> {
   const prepared = (await import('./config')).prepareConfig(config);
   report?.({ type: 'phase:start', phase: 'extract' });
+  report?.({
+    type: 'info',
+    message: `Source: ${displayPath(prepared.root)}\nCatalogs: ${displayPath(getPaths(prepared).translations)}`,
+  });
   const started = Date.now();
   let stats!: ExtractStats;
   const messages = await extractWithCache(prepared, (file) => report?.({ type: 'file:processed', file }), (value) => {
@@ -31,7 +36,7 @@ export async function extract(config: I18nConfig, report?: Reporter): Promise<Me
     report?.({
       type: 'warning',
       message: `No source files matched in ${
-        path.resolve(prepared.root)
+        JSON.stringify(displayPath(prepared.root))
       }. Check files.includes and files.excludes in your config.`,
     });
   } else if (!messages.length) {
@@ -41,16 +46,22 @@ export async function extract(config: I18nConfig, report?: Reporter): Promise<Me
     });
   }
   report?.({
-    type: 'info',
-    message: `Source: ${path.resolve(prepared.root)}\nCatalogs: ${getPaths(prepared).translations}`,
-  });
-  report?.({
     type: 'phase:end',
     phase: 'extract',
-    summary:
-      `${stats.files} files matched; ${stats.cached} cached, ${stats.parsed} parsed, ${stats.skipped} without message calls, ${stats.removed} removed. ${messages.length} unique messages; ${prepared.languages.targets.length} target languages. ${
-        Date.now() - started
-      } ms.`,
+    details: {
+      Files: `${stats.files} matched · ${stats.cached} cached · ${stats.parsed} parsed`,
+      Skipped: `${stats.skipped} ${
+        stats.skipped === 1 ? 'file' : 'files'
+      } with no translatable messages · ${stats.removed} removed`,
+      Messages: `${messages.length} unique · ${prepared.languages.targets.length} target ${
+        prepared.languages.targets.length === 1 ? 'language' : 'languages'
+      }`,
+    },
+    summary: `${stats.files} files matched; ${stats.cached} cached, ${stats.parsed} parsed, ${stats.skipped} ${
+      stats.skipped === 1 ? 'file' : 'files'
+    } with no translatable messages, ${stats.removed} removed. ${messages.length} unique messages; ${prepared.languages.targets.length} target languages. ${
+      Date.now() - started
+    } ms.`,
   });
   return messages;
 }
@@ -131,6 +142,9 @@ export async function merge(config: I18nConfig, report?: Reporter): Promise<void
     const translatedCount = merged.filter((item) => item.translation).length;
     report?.({
       type: 'info',
+      details: {
+        [languageId]: `${translatedCount}/${messages.length} translated · ${messages.length - translatedCount} missing`,
+      },
       message: `${languageId}: ${translatedCount}/${messages.length} translated; ${
         messages.length - translatedCount
       } missing.`,
@@ -140,31 +154,49 @@ export async function merge(config: I18nConfig, report?: Reporter): Promise<void
   report?.({
     type: 'phase:end',
     phase: 'merge',
+    details: {
+      Files: `${prepared.languages.targets.length * formats.length} written`,
+      Formats: formats.join(', '),
+      Catalogs: displayPath(getPaths(prepared).translations),
+    },
     summary: `${prepared.languages.targets.length * formats.length} catalog files (${formats.join(', ')}) in ${
-      getPaths(prepared).translations
+      displayPath(getPaths(prepared).translations)
     }.`,
   });
 }
 
 /** Rebuild generated catalogs after authoring conflicts have been resolved. */
 export async function conflict(config: I18nConfig, report?: Reporter): Promise<void> {
+  report?.({ type: 'phase:start', phase: 'conflict' });
   report?.({
     type: 'info',
     message: 'Rebuilding catalogs from resolved authoring files. Unresolved conflict markers will stop the command.',
   });
   await merge(config, report);
+  report?.({
+    type: 'phase:end',
+    phase: 'conflict',
+    details: { Status: 'Catalogs rebuilt from resolved authoring files' },
+  });
 }
 
 export async function translateAuto(config: I18nConfig, report?: Reporter): Promise<void> {
+  await translate(config, report, true);
+}
+
+async function translate(config: I18nConfig, report: Reporter | undefined, suggestMerge: boolean): Promise<void> {
   const prepared = (await import('./config')).prepareConfig(config);
   report?.({ type: 'phase:start', phase: 'translate' });
   if (!config.translator || (Array.isArray(config.translator) && !config.translator.length)) {
     report?.({
-      type: 'info',
-      message:
-        'Automatic translation is not configured. Set translator in your config to enable it, or continue with manual translations.',
+      type: 'phase:end',
+      phase: 'translate',
+      summary: 'Skipped; no translator configured.',
+      details: {
+        Status: 'Skipped; no translator configured',
+        Next: 'Set translator in your config, or continue with manual translations',
+      },
     });
-    report?.({ type: 'phase:end', phase: 'translate', summary: 'Skipped; no translator configured.' });
     return;
   }
   let totalTranslated = 0;
@@ -206,6 +238,12 @@ export async function translateAuto(config: I18nConfig, report?: Reporter): Prom
       totalMissing += items.length;
       continue;
     }
+    report?.({
+      type: 'info',
+      message: `${languageId}: translating ${items.length} ${
+        items.length === 1 ? 'message' : 'messages'
+      } (${prepared.languages.source} -> ${languageId})`,
+    });
     const split = translator.tag ? null : splitTaggedItems(items);
     const requestItems: TranslationItem[] = split?.items ?? items;
     const chunks = split?.chunks ?? new Map<string, TagChunk[]>();
@@ -228,7 +266,10 @@ export async function translateAuto(config: I18nConfig, report?: Reporter): Prom
         }
         results.push(...result);
       } catch (error) {
-        throw contextualError(`Translation failed for ${prepared.languages.source} -> ${languageId}`, error);
+        throw contextualError(`Translation failed for ${prepared.languages.source} -> ${languageId}`, error, {
+          Step: 'translate',
+          Languages: `${prepared.languages.source} -> ${languageId}`,
+        });
       }
     }
     const translations = translator.tag
@@ -247,6 +288,7 @@ export async function translateAuto(config: I18nConfig, report?: Reporter): Prom
     totalMissing += items.length - translated.length;
     report?.({
       type: 'info',
+      details: { [languageId]: `${translated.length} translated · ${items.length - translated.length} missing` },
       message: `${languageId}: ${translated.length} translated; ${items.length - translated.length} still missing.`,
     });
     for (const item of translated) report?.({ type: 'message:translated', id: item.id, languageId });
@@ -254,8 +296,13 @@ export async function translateAuto(config: I18nConfig, report?: Reporter): Prom
   report?.({
     type: 'phase:end',
     phase: 'translate',
+    details: {
+      Translated: String(totalTranslated),
+      Missing: String(totalMissing),
+      ...(totalTranslated && suggestMerge ? { Next: 'fluentic-i18n merge' } : {}),
+    },
     summary: `${totalTranslated} messages translated; ${totalMissing} still missing.${
-      totalTranslated ? ' Run fluentic-i18n merge to rebuild runtime catalogs.' : ''
+      totalTranslated && suggestMerge ? ' Run fluentic-i18n merge to rebuild runtime catalogs.' : ''
     }`,
   });
 }
@@ -356,18 +403,23 @@ function splitTagParts(source: string): Array<{ type: 'tag' | 'text'; value: str
 export async function update(config: I18nConfig, report?: Reporter): Promise<void> {
   report?.({ type: 'phase:start', phase: 'update' });
   await extract(config, report);
-  await translateAuto(config, report);
+  await translate(config, report, false);
   await merge(config, report);
   report?.({
     type: 'phase:end',
     phase: 'update',
+    details: { Status: 'Extraction, translation, and catalog merge completed' },
     summary: 'Extraction, automatic translation, and catalog merge completed. Review any warnings above.',
   });
 }
 
 function exchangeRoot(config: I18nConfig, name: string, options: ExchangeOptions, report?: Reporter): string {
   const root = path.resolve(options.directory ?? path.join(getPaths(prepareConfig(config)).exports, name));
-  report?.({ type: 'info', message: `Exchange folder: ${root}${options.directory === undefined ? ' (default)' : ''}` });
+  report?.({
+    type: 'info',
+    message: `Exchange folder: ${displayPath(root)}${options.directory === undefined ? ' (default)' : ''}`,
+    details: { Exchange: `${displayPath(root)}${options.directory === undefined ? ' (default)' : ''}` },
+  });
   return root;
 }
 
@@ -390,12 +442,18 @@ export async function exportTranslations(
   const prepared = prepareConfig(config);
   const handler = resolveConverter(config, converterName);
   checkExchangeLanguages(prepared.languages.targets);
+  report?.({ type: 'phase:start', phase: 'export' });
+  report?.({ type: 'info', message: `Converter: ${converterName}` });
   const root = exchangeRoot(config, converterName, options, report);
   await noSymlinks(root, root);
   if (handler.kind === 'folder') {
-    report?.({ type: 'phase:start', phase: 'export' });
     await handler.export(config, { directory: root }, report);
-    report?.({ type: 'phase:end', phase: 'export', summary: `${converterName} written to ${root}.` });
+    report?.({
+      type: 'phase:end',
+      phase: 'export',
+      details: { Status: 'Export complete' },
+      summary: `${converterName} written to ${displayPath(root)}.`,
+    });
     return;
   }
   const converter = handler.converter;
@@ -405,7 +463,6 @@ export async function exportTranslations(
     );
   }
   const { mkdir, writeFile } = await import('node:fs/promises');
-  report?.({ type: 'phase:start', phase: 'export' });
   const pending: Array<{ target: string; content: string | Uint8Array; }> = [];
   const seen = new Set<string>();
   for (const languageId of prepared.languages.targets) {
@@ -427,6 +484,11 @@ export async function exportTranslations(
     }
     report?.({
       type: 'info',
+      details: {
+        [languageId]: `${records.length} ${records.length === 1 ? 'message' : 'messages'} · ${result.files.length} ${
+          result.files.length === 1 ? 'file' : 'files'
+        } prepared`,
+      },
       message: `${languageId}: ${records.length} messages; ${result.files.length} export files.`,
     });
     for (const file of result.files) {
@@ -447,7 +509,8 @@ export async function exportTranslations(
   report?.({
     type: 'phase:end',
     phase: 'export',
-    summary: `${pending.length} files written to ${root} (${converterName}).`,
+    details: { Files: `${pending.length} written`, Languages: String(prepared.languages.targets.length) },
+    summary: `${pending.length} files written to ${displayPath(root)} (${converterName}).`,
   });
 }
 
@@ -460,12 +523,22 @@ export async function importTranslations(
   const prepared = prepareConfig(config);
   const handler = resolveConverter(config, converterName);
   checkExchangeLanguages(prepared.languages.targets);
+  report?.({ type: 'phase:start', phase: 'import' });
+  report?.({ type: 'info', message: `Converter: ${converterName}` });
   const root = exchangeRoot(config, converterName, options, report);
   await noSymlinks(root, root);
   if (handler.kind === 'folder') {
-    report?.({ type: 'phase:start', phase: 'import' });
-    await handler.import(config, { directory: root }, report);
-    report?.({ type: 'phase:end', phase: 'import', summary: `${converterName} imported from ${root}.` });
+    let filesUpdated = 0;
+    await handler.import(config, { directory: root }, (event) => {
+      if (event.type === 'file:processed') filesUpdated++;
+      report?.(event);
+    });
+    report?.({
+      type: 'phase:end',
+      phase: 'import',
+      details: filesUpdated ? { Next: 'fluentic-i18n merge' } : {},
+      summary: `${converterName} imported from ${displayPath(root)}.`,
+    });
   } else {
     const converter = handler.converter;
     if (!converter.import) {
@@ -474,7 +547,6 @@ export async function importTranslations(
       );
     }
     const { readFile, readdir } = await import('node:fs/promises');
-    report?.({ type: 'phase:start', phase: 'import' });
     const messages = await readMessages(prepared);
     const sourceById = new Map(messages.map((item) => [item.id, item]));
     let importedCount = 0;
@@ -485,7 +557,9 @@ export async function importTranslations(
       if (!files.length && !handler.builtin) {
         report?.({
           type: 'warning',
-          message: `${languageId}: no files found in ${exportRoot}; skipped. Check --input or run export first.`,
+          message: `${languageId}: no files found in ${
+            displayPath(exportRoot)
+          }; skipped. Check --input or run export first.`,
         });
         continue;
       }
@@ -505,7 +579,7 @@ export async function importTranslations(
         }
       } catch (error) {
         throw new Error(
-          `Converter "${converterName}" import failed for ${languageId} (${exportRoot}): ${
+          `Converter "${converterName}" import failed for ${languageId} (${displayPath(exportRoot)}): ${
             errorMessage(error)
           }. No translations were changed.`,
         );
@@ -519,13 +593,13 @@ export async function importTranslations(
           !item || typeof item.source !== 'string' || typeof item.translation !== 'string' ||
           !(item.context === null || typeof item.context === 'string')
         ) {
-          throw new Error(`${exportRoot}: invalid translation record. No translations were changed.`);
+          throw new Error(`${displayPath(exportRoot)}: invalid translation record. No translations were changed.`);
         }
         const id = recordId(item.context, item.source);
         const source = sourceById.get(id);
         if (!source || seen.has(id)) {
           throw new Error(
-            `${exportRoot}: ${seen.has(id) ? 'duplicate' : 'unknown'} source/context: ${
+            `${displayPath(exportRoot)}: ${seen.has(id) ? 'duplicate' : 'unknown'} source/context: ${
               JSON.stringify([item.context, item.source])
             }. No translations were changed.`,
           );
@@ -536,6 +610,9 @@ export async function importTranslations(
       importedCount += imported.length;
       report?.({
         type: 'info',
+        details: {
+          [languageId]: `${imported.length} validated · ${files.length} ${files.length === 1 ? 'file' : 'files'}`,
+        },
         message: `${languageId}: ${imported.length} translations validated from ${files.length} files.`,
       });
       pending.push({ file: manualPath, records: [...byId.values()] });
@@ -548,13 +625,14 @@ export async function importTranslations(
     report?.({
       type: 'phase:end',
       phase: 'import',
+      details: {
+        Imported: String(importedCount),
+        Files: `${pending.length} updated`,
+        ...(pending.length ? { Next: 'fluentic-i18n merge' } : { Status: 'No files imported' }),
+      },
       summary: `${importedCount} translations imported; ${pending.length} language files updated.`,
     });
   }
-  report?.({
-    type: 'info',
-    message: `Imported ${converterName} translations. Run fluentic-i18n merge to rebuild runtime catalogs.`,
-  });
 }
 
 async function collectFiles(directory: string, readdir: typeof import('node:fs/promises').readdir): Promise<string[]> {
@@ -569,10 +647,10 @@ async function collectFiles(directory: string, readdir: typeof import('node:fs/p
   const files: string[] = [];
   for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
     const file = path.join(directory, entry.name);
-    if (entry.isSymbolicLink()) throw new Error(`Symbolic links are not allowed: ${file}`);
+    if (entry.isSymbolicLink()) throw new Error(`Symbolic links are not allowed: ${displayPath(file)}`);
     if (entry.isDirectory()) files.push(...await collectFiles(file, readdir));
     else if (entry.isFile()) files.push(file);
-    else throw new Error(`Unsupported exchange file: ${file}`);
+    else throw new Error(`Unsupported exchange file: ${displayPath(file)}`);
   }
   return files;
 }

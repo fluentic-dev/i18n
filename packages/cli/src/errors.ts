@@ -1,9 +1,11 @@
+import { displayPath } from './display-path';
+
 /** Render failures without exposing a JavaScript stack in normal CLI output. */
 export function errorMessage(error: unknown): string {
   let message: string;
   if (error instanceof Error) {
     const system = error as NodeJS.ErrnoException;
-    const location = system.path ? `: ${system.path}` : '';
+    const location = system.path ? `: ${displayPath(system.path)}` : '';
     if (system.code === 'ENOENT') {
       return `File or folder not found${location}. Check the path and run extract if catalogs have not been created.`;
     }
@@ -23,6 +25,23 @@ export function errorMessage(error: unknown): string {
     'An unexpected error occurred.';
 }
 
-export function contextualError(context: string, error: unknown): Error {
+export function contextualError(context: string, error: unknown, details?: Record<string, string>): Error {
+  if (error instanceof DiagnosticError) {
+    return new DiagnosticError(`${context}: ${error.message}`, { ...details, ...error.details }, { cause: error });
+  }
   return new Error(`${context}: ${errorMessage(error)}`, { cause: error });
+}
+
+/** Preserve a complete API error while rendering copyable CLI guidance separately. */
+export class GuidanceError extends Error {
+  constructor(readonly summary: string, readonly title: string, readonly body: string) {
+    super(`${summary}\n\n${title}:\n${body}`);
+  }
+}
+
+/** Human-readable API message plus structured terminal diagnostics. */
+export class DiagnosticError extends Error {
+  constructor(message: string, readonly details: Record<string, string>, options?: ErrorOptions) {
+    super(message, options);
+  }
 }

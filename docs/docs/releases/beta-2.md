@@ -87,7 +87,7 @@ import { createDeepLTranslator, createGoogleTranslator } from '@fluentic/i18n-cl
 
 `filterTranslator` supports target-language allow and deny lists while preserving a provider's support checks. The old `googleTranslate` and `deeplTranslate` aliases are removed.
 
-Every CLI command now reports readable failures and useful outcomes. Extraction includes cache-hit and message counts even when all files are cached. Translation, merge, import, and export report counts and output locations. Stack traces are hidden by default; use `--debug` for technical details.
+Every CLI command now reports readable failures and useful outcomes. Extraction includes cache-hit and message counts even when all files are cached. Translation, merge, import, and export report counts and output locations. Output uses colored status tags, aligned summaries, elapsed times, and relative paths where practical. `Config` stays flush left, nested stages are indented, and completion lines have a blank line above them. Use `--verbose` for individual files and message IDs, and `--no-color` or `NO_COLOR` to disable color. `FORCE_COLOR=1` enables color in captured output. Handoff guides and repair instructions are clean copyable blocks with absolute paths inside the instructions. Stack traces are hidden by default; use `--debug` for technical details.
 
 The web translation cache also supports `storageMode: 'last' | 'all'` (default `all`), allowing apps to persist only the selected language.
 

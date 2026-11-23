@@ -1,3 +1,4 @@
+import { DiagnosticError } from './errors';
 import { defineTranslator } from './translator';
 import type { ProviderTranslatorOptions, ProviderTranslatorOptionsFactory, Translator } from './types';
 
@@ -122,5 +123,11 @@ function providerError(provider: string, status: number): Error {
     : status >= 500
     ? 'The service is temporarily unavailable. Try again later.'
     : 'Check the language pair, request size, and configured endpoint.';
-  return new Error(`${provider} request failed (HTTP ${status}). ${advice}`);
+  const [reason, ...next] = advice.split('. ');
+  return new DiagnosticError(`${provider} request failed (HTTP ${status}). ${advice}`, {
+    Provider: provider,
+    HTTP: String(status),
+    Reason: next.length ? reason : `${provider} request failed`,
+    Next: next.length ? next.join('. ') : advice,
+  });
 }

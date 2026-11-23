@@ -1,0 +1,55 @@
+{
+  "fingerprintVersion": 1,
+  "version": "0.1.0-beta.3",
+  "tag": "beta",
+  "packages": [
+    {
+      "name": "@fluentic/i18n",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.3",
+      "checksum": "f5abd5b2c673b260a51dec05114191e7f236344c58e7dd031ba04d85716faa39"
+    },
+    {
+      "name": "@fluentic/i18n-compiler",
+      "action": "publish",
+      "version": "0.1.0-beta.3",
+      "previousVersion": "0.1.0-beta.2",
+      "checksum": "e208642a118d55fdf39cc046c00175fb455c9748a3a7cbf45c7151ea03df62c5",
+      "tarball": "fluentic-i18n-compiler-0.1.0-beta.3.tgz",
+      "sha256": "6f971c117c8a66e5ed857a1c8c0b4f616e7821bad78906752e9c274a5d6d5cec",
+      "integrity": "sha512-dEfyaQTnRWLuzt4BqFixi5P12rL14xlHteORfUkIldFGmhdnh1nZYQ+iD9j2toso/+x0Z24+TijwHnO8ftiYCw=="
+    },
+    {
+      "name": "@fluentic/i18n-cli",
+      "action": "publish",
+      "version": "0.1.0-beta.3",
+      "previousVersion": "0.1.0-beta.2",
+      "checksum": "aa7286738b6df59f15f092a0a95009e4bca898fcd3031a743cf72bb8caa33a57",
+      "tarball": "fluentic-i18n-cli-0.1.0-beta.3.tgz",
+      "sha256": "b5b996ceb70e6cf8f04acb0a877f0f37e4996cd6c847f4b99a7bc4096e1dd221",
+      "integrity": "sha512-9h2dsx0LFCzCUTHInCz4z26jFZfxeVXvhzBbjFb+yMUcvKR9YBnP2uXerCeEp6aRgfwWcNrcFlG7dS5oaNM7AA=="
+    },
+    {
+      "name": "@fluentic/i18n-nextjs",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.3",
+      "checksum": "bd3e5c3ed56650f40b2515479e59850c8969629b4d2e28a9d4846b055fb226dd"
+    },
+    {
+      "name": "@fluentic/i18n-rn",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.3",
+      "checksum": "52c0d14f33ec19d2eaaefc675ec5fea605ae535fa0d385d8d99e78c5dc05eeed"
+    },
+    {
+      "name": "@fluentic/i18n-web",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.3",
+      "checksum": "c3eaf1a71d7fdd64637f449be1003f65e1536cef55c69e1eb6c31c74812a7139"
+    }
+  ]
+}

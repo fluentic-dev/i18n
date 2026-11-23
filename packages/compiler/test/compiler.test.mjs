@@ -134,7 +134,7 @@ test('every build plugin uses the common explicit config and direct hash options
   const code = `import {t} from '@fluentic/i18n'; t.text('Hello')`;
   const directId = messageId(null, 'Hello', 6);
   assert.ok(rollup({ hashLength: 6 }).transform(code, 'fixture.ts').code.includes(directId));
-  assert.ok(vite({ hashLength: 6 }).transform(code, 'fixture.ts').code.includes(directId));
+  assert.ok(vite({ hashLength: 6 }).transform.handler(code, 'fixture.ts').code.includes(directId));
 
   const directory = await mkdtemp(join(tmpdir(), 'fluentic-compiler-'));
   try {
@@ -144,7 +144,7 @@ test('every build plugin uses the common explicit config and direct hash options
     await writeFile(configFile, `export default {compiled: {hashLength: 7}};`);
     const configuredId = messageId(null, 'Hello', 7);
     assert.ok(rollup({ config: configFile }).transform(code, sourceFile).code.includes(configuredId));
-    assert.ok(vite({ config: configFile }).transform(code, sourceFile).code.includes(configuredId));
+    assert.ok(vite({ config: configFile }).transform.handler(code, sourceFile).code.includes(configuredId));
     assert.ok(rollup({ config: configFile, hashLength: 6 }).transform(code, sourceFile).code.includes(directId));
     const babelResult = transformSync(code, {
       plugins: [[babel, { config: configFile }]],
@@ -343,5 +343,87 @@ test('compiled runtime rejects uncompiled translations and accepts compiled lite
     assert.equal(t.text([id, 'Hello']), 'Bonjour {name}');
   } finally {
     setRuntimeResolver(() => defaultRuntime);
+  }
+});
+
+test('adapters share package precedence and skip excluded source before parsing', async () => {
+  const options = {
+    include: '**/src/**',
+    exclude: /node_modules/,
+    includePackages: ['@acme/ui', 'blocked'],
+    excludePackages: 'blocked',
+  };
+  const allowed = '/app/node_modules/@acme/ui/card.ts';
+  const blocked = '/app/node_modules/blocked/card.ts';
+  for (const adapter of [rollup(options), vite(options)]) {
+    const run = typeof adapter.transform === 'function' ? adapter.transform : adapter.transform.handler;
+    assert.match(run(source, allowed + '#fragment').code, /i18n\/compiled/);
+    assert.equal(run('invalid javascript !!!', blocked), null);
+    assert.equal(run('invalid javascript !!!', '/app/other.ts'), null);
+  }
+  const runLoader = (filename, code, inputMap = null) => {
+    let output;
+    webpackLoader.call(
+      {
+        getOptions: () => options,
+        resourcePath: filename,
+        callback(error, code, map) {
+          assert.equal(error, null);
+          output = { code, map };
+        },
+      },
+      code,
+      inputMap,
+    );
+    return output;
+  };
+  assert.match(runLoader(allowed, source).code, /i18n\/compiled/);
+  const map = { version: 3, sources: [], names: [], mappings: '' };
+  assert.deepEqual(runLoader(blocked, 'invalid javascript !!!', map), { code: 'invalid javascript !!!', map });
+  const compiler = { options: { module: { rules: [] } } };
+  new FluenticI18nPlugin(options).apply(compiler);
+  const rule = compiler.options.module.rules[0];
+  assert.equal(rule.test(allowed), true);
+  assert.equal(rule.test(blocked), false);
+  assert.equal(rule.test('/app/image.png'), false);
+  for (const filename of [allowed, blocked]) {
+    const result = transformSync(source, { filename, plugins: [[babel, options]], configFile: false, babelrc: false });
+    assert.equal(result.code.includes('i18n/compiled'), filename === allowed);
+  }
+  let onLoad;
+  esbuild(options).setup({
+    initialOptions: {},
+    onStart() {},
+    onLoad(_options, callback) {
+      onLoad = callback;
+    },
+  });
+  assert.equal(await onLoad({ path: blocked }), undefined); // Must skip before trying to read the nonexistent file.
+  const next = withFluentic({ requestConfig: './request.ts', ...options })({});
+  assert.deepEqual(next.turbopack.rules['*.ts'][0].loaders[0].options.includePackages, options.includePackages);
+  assert.equal(next.turbopack.rules['*.ts'][0].condition, undefined);
+  assert.deepEqual(next.webpack({}, {}).plugins[0].options.excludePackages, 'blocked');
+});
+
+test('config filters reload without stale Vite native exclusions', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'fluentic-filter-'));
+  try {
+    const config = join(directory, 'filter.mjs');
+    const filename = join(directory, 'node_modules/shared/card.ts');
+    await writeFile(config, 'export default { excludePackages: "shared" };');
+    const adapters = [rollup({ config }), vite({ config })];
+    assert.deepEqual(adapters[1].transform.filter, { id: {} });
+    for (const adapter of adapters) {
+      const run = typeof adapter.transform === 'function' ? adapter.transform : adapter.transform.handler;
+      assert.equal(run('invalid !!!', filename), null);
+    }
+    await writeFile(config, 'export default { includePackages: "shared" };');
+    for (const adapter of adapters) {
+      adapter.watchChange(config);
+      const run = typeof adapter.transform === 'function' ? adapter.transform : adapter.transform.handler;
+      assert.match(run(source, filename).code, /i18n\/compiled/);
+    }
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });

@@ -1,5 +1,7 @@
 # @fluentic/i18n
 
+## 0.1.0-beta.3
+
 ## 0.1.0-beta.2
 
 ### Additional beta.2 changes

@@ -22,7 +22,9 @@
     "test:next": "pnpm --filter @fluentic/i18n-nextjs build && pnpm --filter @example/nextjs build:cookie && TEST_LANGUAGE_MODE=cookie node scripts/test-next.mjs && pnpm --filter @example/nextjs build:url && TEST_LANGUAGE_MODE=url node scripts/test-next.mjs",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm build:packages && changeset publish && node scripts/sync-prerelease-tag.mjs"
+    "release": "pnpm build:packages && node scripts/release.mjs --publish",
+    "release:baseline": "node scripts/release.mjs --baseline",
+    "release:prepare": "pnpm build:packages && node scripts/release.mjs --prepare"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.1",

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { displayPath } from './display-path';
 import { contextualError } from './errors';
 import type { Converter, JsonValue, Translator } from './types';
 
@@ -64,7 +65,7 @@ export async function loadConfigEnv(configPath: string, config: I18nConfig): Pro
       loaded = true;
     } catch (error) {
       if (config.env || (error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        throw contextualError(`Unable to read env file ${envPath}`, error);
+        throw contextualError(`Unable to read env file ${displayPath(envPath)}`, error);
       }
     }
   }

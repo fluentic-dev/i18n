@@ -1,19 +1,18 @@
 import { createRequire } from 'node:module';
 import { relative, resolve } from 'node:path';
+import type { PluginOptions } from './options';
 import FluenticPlugin from './webpack';
 const require = createRequire(import.meta.url);
-export type NextPluginOptions = {
+export type NextPluginOptions = PluginOptions & {
   requestConfig: string;
-  /** Optional i18n config path, resolved from the application working directory. */
-  config?: string;
-  /** Direct override; otherwise reuse compiled.hashLength from an explicitly selected config or the default. */
-  hashLength?: number;
 };
 /** One Next integration; preserves the application's existing webpack hook/rules. */
 export default function withFluentic(options: NextPluginOptions) {
   const request = resolve(options.requestConfig);
   const loader = require.resolve('@fluentic/i18n-compiler/webpack-loader');
+  const { requestConfig: _requestConfig, ...pluginOptions } = options;
   const compilerOptions = {
+    ...pluginOptions,
     bindReactText: true,
     ...(options.config ? { config: resolve(options.config) } : {}),
     ...(options.hashLength !== undefined ? { hashLength: options.hashLength } : {}),
@@ -28,10 +27,13 @@ export default function withFluentic(options: NextPluginOptions) {
       },
       rules: {
         ...nextConfig.turbopack?.rules,
-        ...Object.fromEntries(['*.js', '*.jsx', '*.ts', '*.tsx', '*.mjs', '*.mts'].map((pattern) => [pattern, [
-          ...(nextConfig.turbopack?.rules?.[pattern] ? [nextConfig.turbopack.rules[pattern]].flat() : []),
-          { condition: { not: 'foreign' }, loaders: [{ loader, options: compilerOptions }] },
-        ]])),
+        ...Object.fromEntries(
+          ['*.js', '*.jsx', '*.ts', '*.tsx', '*.mjs', '*.mts', '*.cjs', '*.cts', '*.mjsx', '*.mtsx', '*.cjsx', '*.ctsx']
+            .map((pattern) => [pattern, [
+              ...(nextConfig.turbopack?.rules?.[pattern] ? [nextConfig.turbopack.rules[pattern]].flat() : []),
+              { loaders: [{ loader, options: compilerOptions }] },
+            ]]),
+        ),
       },
     },
     webpack(config: any, context: any) {

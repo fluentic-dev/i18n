@@ -4,21 +4,40 @@ import { Command, CommanderError } from 'commander';
 import { createJiti } from 'jiti';
 import { access } from 'node:fs/promises';
 import path from 'node:path';
+import { inspect } from 'node:util';
 import { isConfig, loadConfigEnv, registerConfigEnv, validateConfig } from './config';
-import { contextualError, errorMessage } from './errors';
-import { createConsoleReporter } from './events';
+import { displayPath } from './display-path';
+import { contextualError } from './errors';
+import { createConsoleReporter, type Reporter } from './events';
 import { conflict, exportTranslations, extract, importTranslations, merge, translateAuto, update } from './run';
 
 const program = new Command();
 program.name('fluentic-i18n').description('Fluentic i18n extraction and catalog tooling.').option(
   '-c, --config <file>',
   'Config file',
-).option('--debug', 'Show technical error details').exitOverride();
+).option('--debug', 'Show technical error details')
+  .option('-v, --verbose', 'Show individual files and translated message IDs')
+  .option('--no-color', 'Disable colored output')
+  .exitOverride();
 let commandName = 'command';
 program.hook('preAction', (_parent, command) => {
   commandName = command.name();
 });
-const reporter = () => createConsoleReporter(console.log, console.error);
+let lastOutput: { error: boolean; text: string; } | undefined;
+function writeOutput(text: string, error = false): void {
+  (error ? process.stderr : process.stdout).write(text);
+  lastOutput = { error, text: ((lastOutput?.text ?? '') + text).slice(-2) };
+}
+let activeReporter: Reporter | undefined;
+const reporter = () =>
+  activeReporter ??= createConsoleReporter(
+    (line) => writeOutput(line + '\n'),
+    (line) => writeOutput(line + '\n', true),
+    {
+      verbose: program.opts().verbose,
+      color: program.opts().color === false ? false : undefined,
+    },
+  );
 
 async function loadConfig() {
   const requested = program.opts().config as string | undefined;
@@ -29,10 +48,10 @@ async function loadConfig() {
     if (!isConfig(config)) throw new Error('Export a default config using defineConfig(...).');
     validateConfig(config);
     registerConfigEnv(config, await loadConfigEnv(configPath, config));
-    console.log(`Config: ${configPath}`);
+    reporter()({ type: 'info', message: `Config: ${displayPath(configPath)}` });
     return config;
   } catch (error) {
-    throw contextualError(`Could not load config ${configPath}`, error);
+    throw contextualError(`Could not load config ${displayPath(configPath)}`, error);
   }
 }
 
@@ -89,14 +108,44 @@ for (const [name, action] of [['export', exportTranslations], ['import', importT
     });
 }
 
+for (const command of [program, ...program.commands]) {
+  command.configureOutput({
+    writeOut: (text) => writeOutput(text),
+    writeErr: (text) => writeOutput(text, true),
+    outputError: (message) => {
+      const name = command.name();
+      const invocation = command === program ? program.name() : `${program.name()} ${name}`;
+      const exchange = name === 'import' || name === 'export';
+      const explanation = exchange && /^error: too many arguments/.test(message)
+        ? `${name} accepts one converter. Run import and export as separate commands.`
+        : message.replace(/^error:\s*/, '').trim().replace(/^./, (character) => character.toUpperCase());
+      reporter()({
+        type: 'error',
+        error: explanation,
+        details: {
+          Usage: `${invocation} ${command.usage()}`,
+          ...(exchange ? { Example: `${invocation} handoff` } : {}),
+          Help: `${invocation} --help`,
+        },
+      });
+    },
+  });
+}
+
 try {
   await program.parseAsync();
 } catch (error) {
   if (error instanceof CommanderError) {
     process.exitCode = error.exitCode;
   } else {
-    console.error(`[error] ${commandName} failed: ${errorMessage(error)}`);
-    if (program.opts().debug) console.error(error);
+    reporter()({ type: 'error', error, context: `${commandName} failed` });
+    if (program.opts().debug) writeOutput(inspect(error) + '\n', true);
     process.exitCode = 1;
+  }
+} finally {
+  // Finish the entire invocation, including help and debug output, exactly once.
+  // Nested phase completion never owns this final separator.
+  if (lastOutput && !lastOutput.text.endsWith('\n\n')) {
+    writeOutput(lastOutput.text.endsWith('\n') ? '\n' : '\n\n', lastOutput.error);
   }
 }

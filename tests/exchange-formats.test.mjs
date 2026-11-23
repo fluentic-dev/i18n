@@ -50,8 +50,14 @@ for (const format of Object.keys(extensions)) {
     const f = await fixture(t);
     const events = [];
     await exportTranslations(f.config, format, (event) => events.push(event), { directory: f.directory });
-    assert.match(events[0].message, new RegExp(f.directory));
-    assert.doesNotMatch(events[0].message, /\(default\)/);
+    assert.match(
+      events.find((event) => event.type === 'info' && event.message.startsWith('Exchange folder:')).message,
+      new RegExp(f.directory),
+    );
+    assert.doesNotMatch(
+      events.find((event) => event.type === 'info' && event.message.startsWith('Exchange folder:')).message,
+      /\(default\)/,
+    );
     const text = await readFile(f.file(format), 'utf8');
     if (format === 'xliff') assert.match(text, /version="1.2"/);
     await f.reset();
@@ -64,8 +70,15 @@ for (const format of Object.keys(extensions)) {
     const f = await fixture(t);
     const events = [];
     await exportTranslations(f.config, format, (event) => events.push(event));
-    assert.match(events[0].message, /\(default\)$/);
-    assert.ok(events[0].message.includes(path.join(f.root, 'data/exports', format)));
+    assert.match(
+      events.find((event) => event.type === 'info' && event.message.startsWith('Exchange folder:')).message,
+      /\(default\)$/,
+    );
+    assert.ok(
+      events.find((event) => event.type === 'info' && event.message.startsWith('Exchange folder:')).message.includes(
+        path.join(f.root, 'data/exports', format),
+      ),
+    );
     await importTranslations(f.config, format);
   });
   test(`${format} validates every locale before writing`, async (t) => {
@@ -209,8 +222,8 @@ test('CLI routes built-ins and overrides with custom and default path reporting'
   for (const name of ['json', 'csv', 'xliff']) {
     const directory = path.join(f.root, 'cli', name);
     const result = await run('export', name, '--output', directory);
-    assert.ok(result.stdout.includes(`Exchange folder: ${directory}\n`));
-    assert.match((await run('import', name, '--input', directory)).stdout, /Imported/);
+    assert.ok(result.stdout.includes(`Exchange:    ${directory}\n`));
+    assert.match((await run('import', name, '--input', directory)).stdout, /Imported:/);
     assert.match((await run('export', name)).stdout, /\(default\)/);
   }
   await writeFile(
@@ -219,6 +232,9 @@ test('CLI routes built-ins and overrides with custom and default path reporting'
       JSON.stringify(f.config)
     },[Symbol.for('@fluentic/i18n-cli/config')]:true,convert:[{name:'handoff',export:()=>({files:[{path:'override.txt',content:'overridden'}]}),import:()=>[]}]};`,
   );
-  assert.match((await run('export', 'handoff', '--output', path.join(f.root, 'override'))).stdout, /override.txt/);
-  assert.match((await run('import', 'handoff', '--input', path.join(f.root, 'override'))).stdout, /Imported/);
+  assert.match(
+    (await run('--verbose', 'export', 'handoff', '--output', path.join(f.root, 'override'))).stdout,
+    /override.txt/,
+  );
+  assert.match((await run('import', 'handoff', '--input', path.join(f.root, 'override'))).stdout, /Imported:/);
 });

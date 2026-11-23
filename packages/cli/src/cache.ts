@@ -1,6 +1,7 @@
 import { glob } from 'fast-glob';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { displayPath } from './display-path';
 import { contextualError } from './errors';
 import { extractMessages } from './extract';
 import { hashText } from './hash';
@@ -60,7 +61,7 @@ export async function extractWithCache(
 ): Promise<MessageRecord[]> {
   const rootDir = path.resolve(config.root);
   if (!(await stat(rootDir)).isDirectory()) {
-    throw new Error(`Source root is not a folder: ${rootDir}. Check config.root.`);
+    throw new Error(`Source root is not a folder: ${displayPath(rootDir)}. Check config.root.`);
   }
   const includes = config.files?.includes ?? ['**/*.{ts,tsx,js,jsx}'];
   const excludes = ['node_modules/**', ...(config.files?.excludes ?? [])];
@@ -126,7 +127,7 @@ export async function extractWithCache(
       try {
         nextMessages[file] = extractMessages(text, file);
       } catch (error) {
-        throw contextualError(`Could not extract messages from ${file}`, error);
+        throw contextualError(`Could not extract messages from ${displayPath(file)}`, error);
       }
       stats.parsed++;
       onFile(file);

@@ -240,8 +240,7 @@ const builtins = new Map<string, ResolvedConverter>([
   ['handoff', {
     kind: 'folder',
     export: async (config, options, report) => {
-      const guide = await exportHandoff(config, options);
-      report?.({ type: 'info', message: 'Copy this to your coding agent:\n\n' + guide });
+      await exportHandoff(config, options, report);
     },
     import: importHandoff,
   }],

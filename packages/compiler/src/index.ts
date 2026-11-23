@@ -15,7 +15,9 @@ import {
 import { compileMessage, messageId } from './message';
 
 export { collectMessages } from './analyze';
+export * from './filter';
 export * from './message';
+export type { PluginOptions } from './options';
 
 const generate = ((generatorModule.default as unknown as { default?: typeof generatorModule.default; }).default ??
   generatorModule.default) as typeof generatorModule.default;

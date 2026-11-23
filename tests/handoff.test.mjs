@@ -227,10 +227,16 @@ test('CLI prints a copyable guide, imports, and reports concise repair failures'
   const run = (...args) => promisify(execFile)(process.execPath, [bin, '--config', configFile, ...args]);
   const target = path.join(f.root, 'cli-handoff');
   const result = await run('export', 'handoff', '--output', target);
-  assert.match(result.stdout, /Copy this to your coding agent/);
+  assert.match(result.stdout, /GUIDE\s+Copy this to your coding agent/);
+  assert.match(result.stdout, /\nTranslate every JSON file/);
+  assert.doesNotMatch(result.stdout, /INFO  Translate|INFO  Preserve|INFO  $/m);
+  assert.match(result.stdout, /Messages:\s+\d+ missing translations/);
+  assert.match(result.stdout, /\n\nDONE  export/);
   await assert.rejects(run('import', 'handoff', '--input', target), (error) => {
     assert.equal(error.code, 1);
-    assert.match(error.stderr, /Copy this to your coding agent/);
+    assert.match(error.stderr, /GUIDE\s+Copy this to your coding agent/);
+    assert.match(error.stderr, /\nFix files in/);
+    assert.doesNotMatch(error.stdout, /DONE  import/);
     assert.doesNotMatch(error.stderr, /at importHandoff/);
     return true;
   });
@@ -240,7 +246,16 @@ test('CLI prints a copyable guide, imports, and reports concise repair failures'
       await readFile(path.join(target, 'input', `${locale}.json`)),
     );
   }
-  assert.match((await run('import', 'handoff', '--input', target)).stdout, /Imported handoff/);
+  const imported = await run('import', 'handoff', '--input', target);
+  assert.match(imported.stdout, /Imported:\s+\d+/);
+  assert.equal((imported.stderr.match(/WARN/g) ?? []).length, 2);
+  assert.match(imported.stderr, /translations match the source/);
+  assert.match(imported.stderr, /--verbose/);
+  assert.match(imported.stdout, /Next:\s+fluentic-i18n merge\n\nDONE  import/);
+  const empty = await run('export', 'handoff', '--output', target);
+  assert.match(empty.stdout, /No missing translations; nothing to send/);
+  assert.doesNotMatch(empty.stdout, /GUIDE|Copy this/);
+  assert.match((await run('import', 'handoff', '--input', target)).stdout, /nothing to import/);
 });
 
 test('export excludes existing translations while retaining missing entries', async (t) => {

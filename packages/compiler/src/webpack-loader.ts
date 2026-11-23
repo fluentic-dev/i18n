@@ -1,4 +1,5 @@
 import remapping from '@jridgewell/remapping';
+import { createTransformFilter } from './filter';
 import { transform } from './index';
 import { loadOptions } from './options';
 
@@ -8,7 +9,9 @@ export default function loader(this: any, code: string, inputMap: unknown) {
 
   if (options.configFile) this.addDependency(options.configFile);
 
-  const result = transform(code, { filename: this.resourcePath, ...options });
+  const result = createTransformFilter(options)(this.resourcePath)
+    ? transform(code, { ...options, filename: this.resourcePath })
+    : null;
   this.callback(
     null,
     result?.code ?? code,

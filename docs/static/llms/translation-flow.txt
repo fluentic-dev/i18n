@@ -107,4 +107,4 @@ The default handoff folder is `<output>/<dirs.exports>/handoff`. Use `--output <
 
 ## Command reporting
 
-Extraction reports file/cache/message counts even on fully cached runs. Other commands report outcomes, translation counts, and locations. Warnings and readable errors go to stderr. Failures return status 1 without a stack trace; use `--debug` for technical details. Unknown converters list available formats. Programmatic APIs still reject with errors.
+Commands use colored status tags, aligned details, elapsed times, and paths relative to the working directory when shorter. Use --verbose for individual files and translated message IDs. Color is automatic for terminals; --no-color or NO_COLOR disables it, and FORCE_COLOR=1 enables it. Extraction reports file/cache/message counts even on fully cached runs. Other commands report outcomes, translation counts, and locations. Warnings and readable errors go to stderr. Failures return status 1 without a stack trace; use `--debug` for technical details. Unknown converters list available formats. Programmatic APIs still reject with errors.

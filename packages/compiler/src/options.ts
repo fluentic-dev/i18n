@@ -1,14 +1,16 @@
 import { createJiti } from 'jiti';
 import { resolve } from 'node:path';
 
+import type { TransformFilterOptions } from './filter';
 import type { CompiledOptions } from './index';
 
-export type PluginOptions = {
+export type { FilterPattern, TransformFilterOptions } from './filter';
+
+export type PluginOptions = TransformFilterOptions & {
   /** Direct override; otherwise reuse compiled.hashLength from an explicitly selected config or the default. */
   hashLength?: number;
   /** Optional i18n config path, resolved from the plugin's working directory. */
   config?: string;
-  includeDependencies?: boolean;
   /** Next.js client modules: bind synchronous text calls to the hydration boundary. */
   bindReactText?: boolean;
 };
@@ -38,8 +40,4 @@ export function loadOptions(
     ...options,
     configFile: file,
   };
-}
-
-export function accepts(id: string, options: PluginOptions) {
-  return /\.[cm]?[jt]sx?$/.test(id.split('?')[0]) && (options.includeDependencies || !id.includes('/node_modules/'));
 }

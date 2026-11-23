@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n-compiler",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.3",
   "description": "Build-time compiler and bundler integrations for Fluentic i18n.",
   "license": "MIT",
   "repository": {
@@ -70,17 +70,20 @@
     "@babel/parser": "7.29.15",
     "@babel/traverse": "7.29.15",
     "@babel/types": "7.29.15",
-    "@types/babel__traverse": "^7.28.0",
     "@fluentic/i18n": "workspace:*",
     "@formatjs/icu-messageformat-parser": "2.11.4",
     "@jridgewell/remapping": "^2.3.5",
-    "jiti": "^2.7.0"
+    "@types/babel__traverse": "^7.28.0",
+    "jiti": "^2.7.0",
+    "picomatch": "^4.0.7"
   },
   "devDependencies": {
     "@babel/core": "7.29.13",
     "@types/babel__generator": "^7.27.0",
     "@types/node": "^22.15.0",
+    "@types/picomatch": "^4.0.3",
     "tsdown": "^0.22.1",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vite": "^7.3.7"
   }
 }

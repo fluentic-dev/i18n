@@ -1,8 +1,20 @@
 # @fluentic/i18n-cli
 
+## 0.1.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @fluentic/i18n-compiler@0.1.0-beta.3
+
 ## 0.1.0-beta.2
 
 ### Additional beta.2 changes
+
+- Polish all command and converter logs with colored status tags, aligned summaries, elapsed times, relative paths, nested stages, and opt-in `--verbose` file/message details. Support `--no-color`, `NO_COLOR`, and `FORCE_COLOR`. Keep config flush left and separate completion lines with a blank line.
+- End each CLI invocation with exactly one blank line on success, help, or failure. Align INFO and diagnostic text with detail values, and show provider errors as structured step/language/provider/status/reason/action rows.
+- Keep next steps inside command summaries, omit unnecessary merge hints, report translation progress before provider requests, and group identical-source warnings with verbose key details. Format usage errors consistently and shorten diagnostic paths.
+- Show handoff locale counts and clean copyable guide/repair blocks. Describe skipped extraction files as files with no translatable messages.
 
 - Name the coding-agent exchange format `handoff`, including converter registration, CLI commands, default directory, and manifest format.
 
