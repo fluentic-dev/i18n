@@ -10,17 +10,18 @@ This page summarizes the public message, runtime, state, and formatting APIs. Fo
 
 Import messages from `@fluentic/i18n` on every platform. `/core` is a compatibility alias. A platform adapter supplies JSX rendering.
 
-| API                                   | Behavior                                                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `t.msg(source, schema?)`              | Define a typed descriptor without translating it; schema values are `String`, `Number`, `Boolean`, or `Date` |
-| `t.text(sourceOrDescriptor, params?)` | Format a string; typed descriptors require their declared params                                             |
-| `t.jsx(sourceOrDescriptor, params?)`  | Return a React element that updates on language changes; core uses the configured JSX handler                |
-| `t.jsx(() => element)`                | Wrap one React element in a fine-grained boundary that reruns only its callback on language changes          |
-| `t.try(renderer, value, params?)`     | Use `t.text` or `t.jsx` for descriptors and return other values unchanged                                    |
-| `t.clone(descriptor)`                 | Copy a descriptor while preserving its message literal and param schema                                      |
-| `t.params(params?)`                   | Return the param object, or `{}` for nullish input                                                           |
-| `t.tag(handlerOrElement)`             | Mark a tag callback; React adapters also accept an element to clone                                          |
-| `t.notranslate(callback)`             | Skip lookup during a synchronous callback; still run ICU formatting                                          |
+| API                                   | Behavior                                                                                                              |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `t.msg(source, schema?)`              | Define a typed descriptor without translating it; schema values are `String`, `Number`, `Boolean`, `Date`, or `t.msg` |
+| `t.msg(descriptor, params)`           | Copy a descriptor with typed params bound for later rendering; no translation happens yet                             |
+| `t.text(sourceOrDescriptor, params?)` | Format a string; typed descriptors require their declared params                                                      |
+| `t.jsx(sourceOrDescriptor, params?)`  | Return a React element that updates on language changes; core uses the configured JSX handler                         |
+| `t.jsx(() => element)`                | Wrap one React element in a fine-grained boundary that reruns only its callback on language changes                   |
+| `t.try(renderer, value, params?)`     | Use `t.text` or `t.jsx` for descriptors and return other values unchanged                                             |
+| `t.clone(descriptor)`                 | Copy a descriptor while preserving its message literal and param schema                                               |
+| `t.params(params?)`                   | Return the param object, or `{}` for nullish input                                                                    |
+| `t.tag(handlerOrElement)`             | Mark a tag callback; React adapters also accept an element to clone                                                   |
+| `t.notranslate(callback)`             | Skip lookup during a synchronous callback; still run ICU formatting                                                   |
 
 `context(name)`, `note(text)`, and `meta(value)` return a scoped message API. Chain them before `msg`, `text`, or `jsx`. Context contributes to identity; notes accumulate; metadata is replaced by the latest value.
 
@@ -38,7 +39,24 @@ t.jsx(greeting, { name: 'Ada' });
 t.try(t.text, greeting, { name: 'Ada' });
 ```
 
-The declaration is retained in the descriptor type, including the original message literal, so IDE hover information remains useful. Render-time values may be real values or language-aware callbacks. See [formats and dynamic values](./learn/formatting).
+Bind values inside a component when you want to assemble messages first and render them later:
+
+```tsx
+const revenueBy = t.msg('Revenue, by {basis}', { basis: t.msg });
+const stayNight = t.msg('stay night');
+
+function Metric() {
+  const label = t.msg(revenueBy, { basis: stayNight });
+
+  return <span>{t.jsx(label)}</span>;
+}
+```
+
+`t.msg(descriptor, params)` requires all params declared by the original schema and returns a new, frozen descriptor. It copies the params and preserves the original context, notes, metadata, and compiled identity. The original descriptor is unchanged. Callbacks and nested descriptors resolve at render time, so `t.jsx(bound)` continues to update when the language changes. `String` fields accept external strings or callbacks returning strings. Fields declared as `t.msg` require message descriptors or callbacks returning descriptors; bind any required params on the nested message first.
+
+`t.text(bound)`, `t.jsx(bound)`, and `t.try(t.text, bound)` need no additional params. You can pass typed overrides at render time or create another descriptor with `t.msg(bound, overrides)`; those overrides merge with the bound values. Initial binding requires all declared params, rather than supporting partial binding.
+
+Descriptors are opaque: unique-symbol type markers retain the original message literal and param types for inference, while runtime fields stay internal. Use `isMessageDescriptor()` to identify them and `t.clone()` to copy them rather than reading fields or spreading descriptor objects. Render-time values may be real values or language-aware callbacks. See [formats and dynamic values](./learn/formatting).
 
 ## Language and catalogs
 

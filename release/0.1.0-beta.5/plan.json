@@ -1,0 +1,58 @@
+{
+  "fingerprintVersion": 1,
+  "version": "0.1.0-beta.5",
+  "tag": "beta",
+  "packages": [
+    {
+      "name": "@fluentic/i18n",
+      "action": "publish",
+      "version": "0.1.0-beta.5",
+      "previousVersion": "0.1.0-beta.2",
+      "checksum": "35c819317126087ca3311b65abd1481263cc66029b98d6135160a7e54fc934c4",
+      "tarball": "fluentic-i18n-0.1.0-beta.5.tgz",
+      "sha256": "392e5248e44816201ef4f5a18ca7a9ec608ba5abf2241ff8eae0725e2d923616",
+      "integrity": "sha512-JgmY3Axb+uPeMoX6fuQj4teIBoaqmbexCdMtW6M7PnKwcuLfOftP2pPiSXx0Gm/eBcAJCw9xq81JUXkPdwZI1Q=="
+    },
+    {
+      "name": "@fluentic/i18n-compiler",
+      "action": "publish",
+      "version": "0.1.0-beta.5",
+      "previousVersion": "0.1.0-beta.4",
+      "checksum": "c89913ffb989d00d2574132440f0318ec6fb33b33339e476de1eb00ef4a4e2a5",
+      "tarball": "fluentic-i18n-compiler-0.1.0-beta.5.tgz",
+      "sha256": "f75ac8f763d9bfc88ff42d249a2ce9be50821958438395d63e304a13857c3074",
+      "integrity": "sha512-Ooy7xU8TV1BbldZBGKdlXhprLL+U6XiglOBAq6qNpZZKndmRqxqTsO95FjPpDVVCcmUz0+1d+GPGqcMiUkg9IA=="
+    },
+    {
+      "name": "@fluentic/i18n-cli",
+      "action": "publish",
+      "version": "0.1.0-beta.5",
+      "previousVersion": "0.1.0-beta.4",
+      "checksum": "72c3cc9f4138fa3aee61f8440a703b5a7248f5cc02b3ec2302401e94a6436927",
+      "tarball": "fluentic-i18n-cli-0.1.0-beta.5.tgz",
+      "sha256": "7d516845be82ee3d2d9d077dd88e4da8d3c4141d97f3bef5bf7d601c68d36f4b",
+      "integrity": "sha512-NKkmwDL9LVhQOsxUW0KxjCkeQxNn2pOrKAnj2bcugHU+j6m45jkGPr4/UuBYLtj+HHK6CdN5gyV359PNngbjNw=="
+    },
+    {
+      "name": "@fluentic/i18n-nextjs",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.5",
+      "checksum": "bd3e5c3ed56650f40b2515479e59850c8969629b4d2e28a9d4846b055fb226dd"
+    },
+    {
+      "name": "@fluentic/i18n-rn",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.5",
+      "checksum": "52c0d14f33ec19d2eaaefc675ec5fea605ae535fa0d385d8d99e78c5dc05eeed"
+    },
+    {
+      "name": "@fluentic/i18n-web",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.5",
+      "checksum": "c3eaf1a71d7fdd64637f449be1003f65e1536cef55c69e1eb6c31c74812a7139"
+    }
+  ]
+}

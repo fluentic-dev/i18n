@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import React from 'react';
 import { act, create } from 'react-test-renderer';
-import { t } from '../dist/index.js';
+import { isMessageDescriptor, t } from '../dist/index.js';
 import { I18nManager, I18nState } from '../dist/react.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -275,4 +275,148 @@ test('source and translation line wrapping render as spaces', async () => {
   await reset(() => [record('First second', 'Premier\n  deuxième')]);
   assert.equal(t.text(`\n    First\n    second\n  `), 'Premier deuxième');
   assert.equal(t.text('First\nsecond{break}third'), 'First second\nthird');
+});
+
+test('Message schema fields resolve nested descriptors and factories in both runtimes', async () => {
+  const { t: compiled } = await import('../dist/compiled.js');
+  for (
+    const [api, outer, inner] of [
+      [t, t.msg('Revenue, by {basis}', { basis: t.msg }), t.msg('Stay night')],
+      [
+        compiled,
+        compiled.msg(['revenue', ['Revenue, by ', [0, 'basis']]], { basis: t.msg }),
+        compiled.msg(['basis', 'Stay night']),
+      ],
+    ]
+  ) {
+    await reset(({ languageId }) =>
+      languageId === 'fr'
+        ? api === compiled
+          ? [{ compiled: true }, ['basis', 'Nuit']]
+          : [record('Stay night', 'Nuit')]
+        : []
+    );
+    let root;
+    await act(async () => {
+      root = create(
+        React.createElement('div', null, api.jsx(outer, { basis: inner }), api.jsx(outer, { basis: () => inner })),
+      );
+    });
+    assert.equal(api.text(outer, { basis: inner }), 'Revenue, by Stay night');
+    assert.deepEqual(root.toJSON().children, ['Revenue, by Stay night', 'Revenue, by Stay night']);
+    await act(async () => {
+      await I18nManager.setLanguageId('fr');
+    });
+    assert.equal(api.text(outer, { basis: () => inner }), 'Revenue, by Nuit');
+    assert.deepEqual(root.toJSON().children, ['Revenue, by Nuit', 'Revenue, by Nuit']);
+    await act(async () => root.unmount());
+  }
+});
+
+test('bound descriptors defer values, preserve identity, and react to language changes', async () => {
+  const { t: compiled } = await import('../dist/compiled.js');
+  for (const api of [t, compiled]) {
+    const original = api === t
+      ? t.context('metrics').note('Revenue metric').meta({ screen: 'report' }).msg('Revenue, by {basis}', {
+        basis: t.msg,
+      })
+      : compiled.msg(['revenue', ['Revenue, by ', [0, 'basis']]], { basis: t.msg });
+    const nestedTemplate = api === t
+      ? t.msg('Stay {unit}', { unit: String })
+      : compiled.msg(['stay', ['Stay ', [0, 'unit']]], { unit: String });
+    let calls = 0;
+    const nested = api.msg(nestedTemplate, {
+      unit: ({ languageId }) => {
+        calls++;
+        return languageId === 'fr' ? 'nuit' : 'night';
+      },
+    });
+    const params = { basis: nested };
+    const bound = api.msg(original, params);
+    params.basis = 'mutated';
+    assert.equal(calls, 0);
+    assert.notEqual(bound, original);
+    assert.deepEqual(Object.keys(bound), []);
+    assert.equal(isMessageDescriptor(bound), true);
+    assert.equal(isMessageDescriptor({ __fluenticMessage: true }), false);
+    assert.ok(Object.isFrozen(bound));
+    await reset(({ languageId }) =>
+      languageId === 'fr'
+        ? api === compiled
+          ? [{ compiled: true }, ['revenue', ['Revenu, par ', [0, 'basis']]], ['stay', ['Séjour ', [0, 'unit']]]]
+          : [
+            { id: 'metrics\0Revenue, by {basis}', translation: 'Revenu, par {basis}' },
+            record('Stay {unit}', 'Séjour {unit}'),
+          ]
+        : []
+    );
+    assert.equal(api.text(bound), 'Revenue, by Stay night');
+    assert.equal(api.text(api.clone(bound)), 'Revenue, by Stay night');
+    assert.equal(api.try(api.text, bound), 'Revenue, by Stay night');
+    assert.equal(
+      api.text(bound, { basis: api === t ? t.msg('arrival') : compiled.msg(['arrival', 'arrival']) }),
+      'Revenue, by arrival',
+    );
+    const rebound = api.msg(bound, {
+      basis: api === t ? t.msg('departure') : compiled.msg(['departure', 'departure']),
+    });
+    assert.equal(api.text(rebound), 'Revenue, by departure');
+    assert.equal(api.text(bound), 'Revenue, by Stay night');
+    assert.throws(() => api.text(api.msg(original, {})), /Missing required message parameter/);
+    assert.throws(() => api.text(api.msg(original, { basis: 42 })), /must be a MessageDescriptor/);
+    let root;
+    await act(async () => {
+      root = create(api.jsx(bound));
+    });
+    assert.equal(root.toJSON(), 'Revenue, by Stay night');
+    await act(async () => {
+      await I18nManager.setLanguageId('fr');
+    });
+    assert.equal(root.toJSON(), 'Revenu, par Séjour nuit');
+    await act(async () => root.unmount());
+  }
+});
+
+test('String and t.msg schema fields validate distinct runtime values', async () => {
+  const { t: compiled } = await import('../dist/compiled.js');
+  await reset(() => []);
+  for (const api of [t, compiled]) {
+    const payload = api === t ? '{value}' : ['value', [[0, 'value']]];
+    const external = api.msg(payload, { value: String });
+    const translated = api.msg(payload, { value: api.msg });
+    const nested = api.msg(api === t ? 'Stay night' : ['night', 'Stay night']);
+    assert.equal(api.text(external, { value: 'External' }), 'External');
+    assert.equal(api.text(external, { value: () => 'External' }), 'External');
+    assert.equal(api.text(translated, { value: nested }), 'Stay night');
+    assert.equal(api.text(translated, { value: () => nested }), 'Stay night');
+    for (const value of [nested, () => nested]) {
+      assert.throws(() => api.text(external, { value }), /must be a String/);
+    }
+    for (const value of ['External', () => 'External', 42, {}, null]) {
+      assert.throws(() => api.text(translated, { value }), /must be a MessageDescriptor/);
+    }
+    assert.throws(() => api.text(translated, { value: api.msg }), /schemas are only valid in t.msg/);
+    assert.throws(() => api.text(translated), /Missing required message parameter/);
+  }
+});
+
+test('descriptors snapshot schemas while params preserves supplied objects', async () => {
+  const { t: compiled } = await import('../dist/compiled.js');
+  await reset(() => []);
+  for (const api of [t, compiled]) {
+    const schema = { name: String };
+    const descriptor = api.msg(api === t ? 'Hello {name}' : ['hello', ['Hello ', [0, 'name']]], schema);
+    const bound = api.msg(descriptor, { name: 'Ada' });
+    schema.name = Number;
+    schema.extra = Boolean;
+    assert.equal(api.text(descriptor, { name: 'Grace' }), 'Hello Grace');
+    assert.equal(api.text(bound), 'Hello Ada');
+    assert.equal(api.text(api.clone(descriptor), { name: 'Grace' }), 'Hello Grace');
+    assert.throws(() => api.text(descriptor, { name: 42 }), /must be a String/);
+    const params = { name: 'Ada' };
+    assert.equal(api.params(params), params);
+    assert.deepEqual(api.params(), {});
+    assert.deepEqual(api.params(undefined), {});
+    assert.deepEqual(api.params(null), {});
+  }
 });

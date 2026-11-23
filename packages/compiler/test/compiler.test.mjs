@@ -427,3 +427,37 @@ test('config filters reload without stale Vite native exclusions', async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('descriptor binding compiles without extracting parameter values as source messages', async () => {
+  const code = `import { t } from '@fluentic/i18n';
+    const base = t.context('metric').msg('Revenue, by {basis}', { basis: t.msg });
+    const nested = t.msg('Stay night');
+    export const bound = t.msg(base, { basis: nested });
+    export const inline = t.msg(t.msg('Hello {name}', { name: String }), { name: 'Ada' });
+    export function bindImported(message, value) { return t.msg(message, { basis: value }); }
+    export function render() { return t.text(bound); }
+  `;
+  assert.deepEqual(collectMessages(code, 'binding.js').map(({ source }) => source), [
+    'Revenue, by {basis}',
+    'Stay night',
+    'Hello {name}',
+  ]);
+  const result = transform(code, { filename: 'binding.js' });
+  assert.doesNotMatch(result.code, /\.context\(/);
+  assert.match(result.code, /\.msg\(base,/);
+  const executable = result.code.replaceAll(
+    "'@fluentic/i18n/compiled'",
+    JSON.stringify(new URL('../../i18n/dist/compiled.js', import.meta.url).href),
+  )
+    .replaceAll(
+      '"@fluentic/i18n/compiled"',
+      JSON.stringify(new URL('../../i18n/dist/compiled.js', import.meta.url).href),
+    );
+  I18nManager.configure({ languageId: 'en' });
+  I18nManager.setTranslationLoader(() => []);
+  await I18nManager.init();
+  const fixture = await import('data:text/javascript;base64,' + Buffer.from(executable).toString('base64'));
+  assert.equal(fixture.render(), 'Revenue, by Stay night');
+  assert.equal(t.text(fixture.inline), 'Hello Ada');
+  assert.equal(t.text(fixture.bindImported(fixture.bound, t.msg(['arrival', 'arrival']))), 'Revenue, by arrival');
+});

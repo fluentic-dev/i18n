@@ -1,7 +1,12 @@
-import { isMessageDescriptor, isMessageSchemaValue, isMessageTagHandler } from '../core/types';
-import type { MessageFormatOptions, MessageParam } from '../core/types';
+import {
+  isMessageDescriptor,
+  isMessageDescriptorSchema,
+  isMessageSchemaValue,
+  isMessageTagHandler,
+} from '../core/types';
+import type { MessageFormatOptions, MessageParam, MessageSchema, MessageSchemaValue } from '../core/types';
 import type { CompactMessage } from './compact';
-import { normalizeMessage } from './message';
+import { getMessageData, normalizeMessage } from './message';
 import { type Formats, getFormats, getRuntime, type Runtime } from './runtime';
 
 export type Engine = (
@@ -25,8 +30,8 @@ export function createFormatting(
     const languageId = options.languageId ?? runtime.languageId;
 
     const descriptor = isMessageDescriptor(options.msg)
-      ? options.msg
-      : { text: options.msg, context: null, schema: {}, compiled: undefined };
+      ? getMessageData(options.msg)
+      : { text: options.msg, context: null, schema: {}, compiled: undefined, boundParams: undefined };
 
     if (compiled && !descriptor.compiled) {
       throw new TypeError('[i18n] compiled runtime requires compiled messages; enable the Fluentic plugin');
@@ -54,29 +59,37 @@ export function createFormatting(
       : translated ?? descriptor.compiled?.[1] ?? descriptor.text;
     const isCompiled = compiled || compiledTranslation || Array.isArray(message);
     const values: Record<string, unknown> = {};
+    const params = { ...descriptor.boundParams, ...options.params };
+    const schema: MessageSchema = descriptor.schema;
 
-    const resolve = (value: MessageParam): unknown => {
-      if (isMessageTagHandler(value)) return value;
+    const resolve = (value: MessageParam, expected?: MessageSchemaValue, key?: string): unknown => {
+      if (isMessageTagHandler(value) && !isMessageDescriptorSchema(expected)) return value;
       if (isMessageSchemaValue(value)) {
         throw new Error('[i18n] Message parameter schemas are only valid in t.msg(); pass a real value');
       }
-      if (typeof value === 'function') return resolve(value({ languageId }) as MessageParam);
-      if (isMessageDescriptor(value)) return getText({ msg: value, languageId }, runtime);
+      if (typeof value === 'function') return resolve(value({ languageId }) as MessageParam, expected, key);
+      if (value !== undefined && isMessageDescriptorSchema(expected) && !isMessageDescriptor(value)) {
+        throw new Error('[i18n] Message parameter "' + key + '" must be a MessageDescriptor');
+      }
+      if (isMessageDescriptor(value)) {
+        if (expected === String) throw new Error('[i18n] Message parameter "' + key + '" must be a String');
+        return getText({ msg: value, languageId }, runtime);
+      }
 
       return value;
     };
 
-    for (const [key, value] of Object.entries(options.params ?? {})) values[key] = resolve(value);
+    for (const [key, value] of Object.entries(params)) values[key] = resolve(value, schema[key], key);
     values.break = jsx ? runtime.jsxLineBreak : '\n';
 
     for (const [key, expected] of Object.entries(descriptor.schema)) {
-      if (key !== 'break' && (!options.params || options.params[key] === undefined)) {
+      if (key !== 'break' && params[key] === undefined) {
         throw new Error('[i18n] Missing required message parameter: ' + key);
       }
 
       const value = values[key];
 
-      const valid = expected === String
+      const valid = expected === String || isMessageDescriptorSchema(expected)
         ? typeof value === 'string'
         : expected === Number
         ? typeof value === 'number'

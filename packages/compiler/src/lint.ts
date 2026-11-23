@@ -102,8 +102,7 @@ export function lintSource(
         }
         const source = literal(args[0]);
         if (source === null) {
-          if (method === 'msg') diagnostic('error', 'static-message', 't.msg requires a static message.');
-          // Renderers also accept descriptors and JSX callbacks, which are not source strings.
+          // Message APIs also accept descriptors (and JSX callbacks), not source strings.
           return;
         }
         messages.push({ ...scope, source, id: scope.context ? `${scope.context}\0${source}` : source });
@@ -186,10 +185,13 @@ export function lintSource(
             continue;
           }
           if (unknownKeys) continue; // A spread or computed property may override this value.
-          const constructor = value.isIdentifier() && !value.scope.getBinding(value.node.name) &&
+          const primitiveConstructor = value.isIdentifier() && !value.scope.getBinding(value.node.name) &&
               ['String', 'Number', 'Boolean', 'Date'].includes(value.node.name)
             ? value.node.name
             : null;
+          const descriptorConstructor = value.isMemberExpression() && memberName(value) === 'msg' &&
+            resolve(value.get('object'));
+          const constructor = primitiveConstructor ?? (descriptorConstructor ? 't.msg' : null);
           if (method === 'msg') {
             if (
               constructor && ((kinds.has('number') && constructor !== 'Number') ||
@@ -200,7 +202,9 @@ export function lintSource(
               diagnostic(
                 'error',
                 'invalid-schema',
-                `Schema for ${JSON.stringify(name)} must use a constructor such as String or Number.`,
+                `Schema for ${
+                  JSON.stringify(name)
+                } must use a constructor such as String or Number, or t.msg for a descriptor.`,
               );
             }
           } else if (constructor) {

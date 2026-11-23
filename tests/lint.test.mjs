@@ -47,6 +47,7 @@ test('source lint handles nested ICU, break, shadowing, dynamic objects, and cal
     t.text('{name}', { name: String, ...dynamicParams });
     t.jsx(() => <div />);
     t.text(descriptor);
+    t.msg(descriptor, { name: user.name });
     function f(t) { t.text('{name}'); }
     function g(String) { t.text('{name}', { name: String }); }
   `).diagnostics,
@@ -61,7 +62,6 @@ test('source lint continues after malformed messages and scope errors', () => {
   const result = scan(`t.text('{bad'); t.msg(dynamic); t.context(dynamic).text('Hello'); t.jsx('{missing}');`);
   assert.deepEqual(result.diagnostics.map((d) => d.code), [
     'invalid-icu',
-    'static-message',
     'extraction',
     'missing-param',
   ]);
@@ -325,7 +325,7 @@ test('parameterChecks disables all parameter diagnostics but preserves extractio
     t.msg(dynamic);
   `;
   const result = lintSource(code, 'test.ts', undefined, { parameterChecks: false });
-  assert.deepEqual(result.diagnostics.map((d) => d.code), ['invalid-icu', 'static-message']);
+  assert.deepEqual(result.diagnostics.map((d) => d.code), ['invalid-icu']);
   assert.equal(result.messages.length, 5);
 });
 
@@ -619,4 +619,43 @@ test('lint separates the heading and diagnostic summary without duplicate blank 
       /Messages:.*1[\s\S]*fr:.*0\/1 translated[\s\S]*Result:.*1 errors · 1 warnings/,
     );
   }
+});
+
+test('t.msg schemas require descriptors and are not runtime values', () => {
+  assert.deepEqual(scan(`t.msg('Revenue, by {basis}', { basis: t.msg });`).diagnostics, []);
+  assert.deepEqual(scan(`t.msg('{count, number}', { count: t.msg });`).diagnostics.map((d) => d.code), ['schema-type']);
+  assert.deepEqual(scan(`t.text('{basis}', { basis: t.msg });`).diagnostics.map((d) => d.code), ['schema-as-value']);
+});
+
+test('CLI lint and extraction support descriptor schemas, bindings, and direct nested values', async (t) => {
+  const source = `
+    const template = t.msg('Revenue, by {basis}', { basis: t.msg });
+    const basis = t.msg('stay night');
+    const label = t.msg(template, { basis });
+    t.jsx(label);
+    t.text(label);
+    t.jsx('Selected: {basis}', { basis: t.msg('arrival') });
+    t.jsx(() => <span title={t.text(label)} />);
+  `;
+  const scanResult = scan(source);
+  assert.deepEqual(scanResult.diagnostics, []);
+  assert.deepEqual(scanResult.messages.map(({ source }) => source), [
+    'Revenue, by {basis}',
+    'stay night',
+    'Selected: {basis}',
+    'arrival',
+  ]);
+  const f = await fixture(t, source);
+  assert.deepEqual((await lint(f.config)).diagnostics, []);
+  const configFile = path.join(f.root, 'i18n.config.mjs');
+  const module = new URL('../packages/cli/dist/index.mjs', import.meta.url).href;
+  await writeFile(
+    configFile,
+    `import { defineConfig } from ${JSON.stringify(module)}; export default defineConfig(${JSON.stringify(f.config)});`,
+  );
+
+  const bin = fileURLToPath(new URL('../packages/cli/dist/bin.mjs', import.meta.url));
+  const result = spawnSync(process.execPath, [bin, '-c', configFile, 'lint', '--strict'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /0 errors · 0 warnings/);
 });

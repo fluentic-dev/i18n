@@ -1,11 +1,15 @@
+import type { CompactMessage } from '../shared/compact';
 import type { Formatting } from '../shared/formatting';
-import { normalizeMessage } from '../shared/message';
+import { bindMessage, cloneMessage, createMessage, markMessageFactory, normalizeMessage } from '../shared/message';
 import { createTagHandler, getRuntime, noTranslate, renderJsxCallback } from '../shared/runtime';
 import type { I18nJsxOutput, I18nTagElement, I18nTagValue } from './types';
 import { isMessageDescriptor } from './types';
 import type {
+  AnyMessageDescriptor,
+  DescriptorRenderArgs,
   JsxRenderer,
   MessageDescriptor,
+  MessageDescriptorSchema,
   MessageInput,
   MessageMeta,
   MessageParams,
@@ -17,35 +21,46 @@ import type {
 
 type MessageScope = { context: string | null; notes: string[]; meta?: MessageMeta; };
 
+export type MessageFactory = MessageDescriptorSchema & {
+  <Text extends string, Schema extends MessageSchema | undefined, Bound extends boolean = boolean>(
+    message: MessageDescriptor<Text, Schema, Bound>,
+    ...args: DescriptorRenderArgs<Schema, Bound>
+  ): MessageDescriptor<Text, Schema, true>;
+  // Infer schema from its argument, not a contextual nested-message return type.
+  <const Text extends string, const Schema extends MessageSchema | undefined = undefined>(
+    message: Text,
+    schema?: Schema,
+  ): MessageDescriptor<Text, NoInfer<Schema>>;
+};
+
 export type MessageApi<JsxOutput = unknown> = {
   context(name: string): MessageApi<JsxOutput>;
   note(note: string): MessageApi<JsxOutput>;
   meta(meta: MessageMeta): MessageApi<JsxOutput>;
-  msg<const Text extends string, const Schema extends MessageSchema | undefined = undefined>(
-    message: Text,
-    schema?: Schema,
-  ): MessageDescriptor<Text, Schema>;
+  msg: MessageFactory;
   text: TextRenderer;
   jsx: JsxRenderer<JsxOutput>;
 };
 
 export type TApi<JsxOutput = unknown, TagValue = unknown> = MessageApi<JsxOutput> & {
-  clone<const Text extends string, const Schema extends MessageSchema | undefined>(
-    message: MessageDescriptor<Text, Schema>,
-  ): MessageDescriptor<Text, Schema>;
-  params<Params extends MessageParams>(params?: Params | null): Params;
+  clone<const Text extends string, const Schema extends MessageSchema | undefined, Bound extends boolean = boolean>(
+    message: MessageDescriptor<Text, Schema, Bound>,
+  ): MessageDescriptor<Text, Schema, Bound>;
+  params<Params extends MessageParams>(params: Params): Params;
+  params(params?: null): Record<never, never>;
+  params<Params extends MessageParams>(params: Params | null | undefined): Params | Record<never, never>;
   tag(element: I18nTagElement): MessageTagHandler<I18nTagValue, I18nTagElement>;
   tag<T = TagValue, R = TagValue>(handler: (chunks: Array<string | T>) => R): MessageTagHandler<T, R>;
   try<T>(
     renderer: TextRenderer,
     value: T,
     ...args: TryRenderArgs<T>
-  ): T extends { readonly __fluenticMessage: true; } ? string : T;
+  ): T extends AnyMessageDescriptor ? string : T;
   try<T>(
     renderer: JsxRenderer<JsxOutput>,
     value: T,
     ...args: TryRenderArgs<T>
-  ): T extends { readonly __fluenticMessage: true; } ? JsxOutput : T;
+  ): T extends AnyMessageDescriptor ? JsxOutput : T;
   notranslate: typeof noTranslate;
 };
 
@@ -61,9 +76,11 @@ export function createT({ getText, getJsx }: Formatting): TApi<I18nJsxOutput, I1
       meta(meta) {
         return createScope({ ...scope, meta });
       },
-      msg(message, schema) {
-        return createDescriptor(message, schema, scope);
-      },
+      msg: markMessageFactory((message: MessageInput, schema?: MessageSchema | MessageParams) => {
+        if (isMessageDescriptor(message)) return bindMessage(message, schema as MessageParams | undefined);
+
+        return createDescriptor(message, schema as MessageSchema | undefined, scope);
+      }),
       text(message: MessageInput, params?: MessageParams) {
         return getText(toFormatOptions(message, params, scope));
       },
@@ -72,7 +89,7 @@ export function createT({ getText, getJsx }: Formatting): TApi<I18nJsxOutput, I1
 
         return getJsx(toFormatOptions(message, params, scope));
       },
-    };
+    } as MessageApi;
   };
 
   const createDescriptor = <const Text extends string, const Schema extends MessageSchema | undefined>(
@@ -80,15 +97,15 @@ export function createT({ getText, getJsx }: Formatting): TApi<I18nJsxOutput, I1
     schema: Schema | undefined,
     scope: MessageScope,
   ): MessageDescriptor<Text, Schema> => {
-    return Object.freeze({
-      __fluenticMessage: true,
-      text: Array.isArray(message) ? message[0] : normalizeMessage(message),
-      ...(Array.isArray(message) ? { compiled: message } : {}),
+    const payload = Array.isArray(message) ? message as unknown as readonly [string, CompactMessage] : undefined;
+    return createMessage<Text, Schema>({
+      text: payload ? payload[0] : normalizeMessage(message),
+      ...(payload ? { compiled: payload } : {}),
       context: scope.context,
       schema: schema ?? {},
       notes: scope.notes,
       meta: scope.meta,
-    }) as unknown as MessageDescriptor<Text, Schema>;
+    });
   };
 
   const toFormatOptions = (message: MessageInput, params: MessageParams | undefined, scope: MessageScope) => {
@@ -100,11 +117,9 @@ export function createT({ getText, getJsx }: Formatting): TApi<I18nJsxOutput, I1
   const rootScope = createScope({ context: null, notes: [] });
 
   return Object.assign(rootScope, {
-    clone(message: MessageDescriptor) {
-      return Object.freeze({ ...message });
-    },
-    params<Params extends MessageParams>(params?: Params | null): Params {
-      return (params ?? {}) as Params;
+    clone: cloneMessage,
+    params<Params extends MessageParams>(params?: Params | null) {
+      return params ?? {};
     },
     tag<T = unknown, R = unknown>(handler: (chunks: Array<string | T>) => R) {
       if (typeof handler !== 'function') {

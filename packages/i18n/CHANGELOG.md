@@ -1,5 +1,18 @@
 # @fluentic/i18n
 
+## 0.1.0-beta.5
+
+### Minor Changes
+
+- Add `t.msg(descriptor, params)` to bind typed values without rendering. Bound descriptors preserve message identity, support deferred callbacks and nested messages, and render without repeating params. Recognize descriptor binding in compilation, extraction, and source linting.
+- Make message descriptors opaque using unique-symbol type markers and internal symbol-keyed runtime data. Preserve schema inference, deferred bindings, cloning, and descriptor guards without exposing runtime fields or factory markers.
+- Add `t.msg` as an explicit schema marker requiring a message descriptor or a callback returning one. Keep `String` fields restricted to external strings and string callbacks, with matching runtime validation and source linting.
+
+### Patch Changes
+
+- Restore editor suggestions for message descriptor parameters in `t.jsx` and `t.text`, including compiled renderers, while preserving required parameter validation.
+- Place descriptor JSX overloads before callback overloads in both runtimes. Preserve empty-result types for nullish `t.params` inputs, require nested descriptor schema values to have their required params bound, and snapshot schemas so caller mutations cannot change descriptor validation.
+
 ## 0.1.0-beta.4
 
 ## 0.1.0-beta.3

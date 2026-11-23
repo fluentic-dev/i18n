@@ -13,15 +13,20 @@
   },
   "changesets": [
     "beta-two",
+    "bound-message-descriptors",
     "builtin-exchange-formats",
     "cli-friendly-reporting",
     "cli-lint",
     "cli-polished-output",
     "compiler-package-filters",
+    "descriptor-parameter-completions",
     "filter-translator",
     "first-public-beta",
     "handoff",
+    "opaque-message-descriptors",
     "refresh-handoff-input",
+    "string-descriptor-params",
+    "t-api-type-safety",
     "translation-cache-storage-mode",
     "translator-subpath"
   ]

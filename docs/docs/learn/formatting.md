@@ -136,7 +136,17 @@ export function Confirmation() {
 }
 ```
 
-The nested descriptor is formatted when the containing message renders, including after language changes. It must not require params of its own, because nested rendering receives no params. With a declared `{ plan: String }` schema, use `plan: () => t.text(plan)` instead: the type expects a string or a callback returning a string. A descriptor without a schema also accepts a callback returning another descriptor.
+The nested descriptor is formatted when the containing message renders, including after language changes. Declare `{ plan: t.msg }` to require a descriptor (or a callback returning one), while `{ plan: String }` accepts only external strings or string callbacks. If the nested message requires params, bind them first with `t.msg(template, params)`:
+
+```tsx
+const planTemplate = t.msg('{name} plan', { name: String });
+const heading = t.msg('Current plan: {plan}', { plan: t.msg });
+const label = t.msg(heading, { plan: t.msg(planTemplate, { name: 'Pro' }) });
+
+t.jsx(label);
+```
+
+Binding creates a new descriptor without translating it. Both levels resolve when rendered, and `t.jsx(label)` updates when the language changes.
 
 This works well for independently named concepts such as plans or statuses. For grammar-sensitive phrases, keep the whole sentence together and use [ICU selection](./icu); some languages need to change surrounding words too.
 
@@ -154,7 +164,7 @@ t.text(inviteAda, { name: 'Ada', workspace: 'Design team' });
 t.text(invitation, { name: 'Lin', workspace: 'Engineering' });
 ```
 
-`String`, `Number`, `Boolean`, and `Date` passed to `t.msg()` describe required runtime values. They are not values themselves and cannot be passed to `t.text()` or `t.jsx()`. `t.clone()` preserves the original message literal and schema. Keep a `t.text()` call inside a function if its result needs to reflect the current language later.
+`String`, `Number`, `Boolean`, `Date`, and `t.msg` used in a schema describe required runtime values. They are not values themselves and cannot be passed to `t.text()` or `t.jsx()`. `t.clone()` preserves the original message literal and schema. Keep a `t.text()` call inside a function if its result needs to reflect the current language later.
 
 `t.params()` is still useful for typing or forwarding real runtime values:
 

@@ -1,5 +1,17 @@
 # @fluentic/i18n-compiler
 
+## 0.1.0-beta.5
+
+### Minor Changes
+
+- Add `t.msg(descriptor, params)` to bind typed values without rendering. Bound descriptors preserve message identity, support deferred callbacks and nested messages, and render without repeating params. Recognize descriptor binding in compilation, extraction, and source linting.
+- Add `t.msg` as an explicit schema marker requiring a message descriptor or a callback returning one. Keep `String` fields restricted to external strings and string callbacks, with matching runtime validation and source linting.
+
+### Patch Changes
+
+- Updated dependencies
+  - @fluentic/i18n@0.1.0-beta.5
+
 ## 0.1.0-beta.4
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @fluentic/i18n-cli
 
+## 0.1.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @fluentic/i18n-compiler@0.1.0-beta.5
+
 ## 0.1.0-beta.4
 
 ### Minor Changes

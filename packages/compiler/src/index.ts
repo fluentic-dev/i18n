@@ -135,9 +135,6 @@ export function compileProgram(code: string, filename: string, options: Compiler
 
       const source = literal(path.get('arguments.0') as NodePath);
 
-      if (source === null && method === 'msg') {
-        throw new Error(`[i18n] ${filename}:${path.node.loc?.start.line}: t.msg requires a static message`);
-      }
       const callbackOwned = method === 'text' && Boolean(
         path.findParent((parent) => parent.isFunction() && jsxCallbacks.has(parent.node as b.Function)),
       );

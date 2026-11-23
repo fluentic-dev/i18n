@@ -171,10 +171,6 @@ export function collectMessages(code: string, filename: string, imports?: string
       const source = literal(path.get('arguments.0') as NodePath);
 
       if (source === null) {
-        if (method === 'msg') {
-          throw new Error(`[i18n] ${filename}:${path.node.loc?.start.line}: t.msg requires a static message`);
-        }
-
         return;
       }
       messages.push({ ...scope, id: scope.context ? `${scope.context}\0${source}` : source, source });
