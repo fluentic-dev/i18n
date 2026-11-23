@@ -3,6 +3,11 @@ import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 const sidebars: SidebarsConfig = {
   docs: [
     {
+      type: 'link',
+      label: 'llms.txt',
+      href: 'https://fluenticstack.com/i18n/llms.txt',
+    },
+    {
       type: 'category',
       label: 'Getting started',
       collapsible: false,
@@ -40,7 +45,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Reference',
       collapsible: false,
-      items: ['releases/beta-2', 'learn/message-workflow', 'api'],
+      items: ['learn/message-workflow', 'api'],
     },
   ],
 };

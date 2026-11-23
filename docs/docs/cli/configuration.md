@@ -82,25 +82,29 @@ files: {
 
 ## Options and defaults
 
-| Option              | Default / behavior                                                       |
-| ------------------- | ------------------------------------------------------------------------ |
-| `compiled`          | `false`; use `true` or `{ hashLength: 8 }` for compact compilation       |
-| `catalogFormat`     | `'jsonl'`; select `jsonl`, `json`, `cjs`, `mjs`, or an array of formats  |
-| `root`              | `'.'`                                                                    |
-| `output`            | `'i18n/data'`                                                            |
-| `languages`         | Required; source ID and target IDs                                       |
-| `files.includes`    | `['**/*.{ts,tsx,js,jsx}']`                                               |
-| `files.excludes`    | Additional ignores; `node_modules/**` is always ignored                  |
-| `dirs.cache`        | `'cache.local'`; disposable per-file extraction cache                    |
-| `dirs.translations` | `'translations'`                                                         |
-| `dirs.exports`      | `'exports'`                                                              |
-| `hashes`            | Hash output is enabled unless set to `false`                             |
-| `translator`        | Optional translator or ordered fallback array                            |
-| `env`               | `i18n.env` + `i18n.env.local` beside the config; set one path or `false` |
-| `convert`           | Optional named converters; matching names override built-ins             |
-| `meta`              | Accepted by the config type; currently not applied to extracted records  |
+| Option                   | Default / behavior                                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `compiled`               | `false`; use `true` or `{ hashLength: 8 }` for compact compilation                                    |
+| `catalogFormat`          | `'jsonl'`; select `jsonl`, `json`, `cjs`, `mjs`, or an array of formats                               |
+| `root`                   | `'.'`                                                                                                 |
+| `output`                 | `'i18n/data'`                                                                                         |
+| `languages`              | Required; source ID and target IDs                                                                    |
+| `files.includes`         | `['**/*.{ts,tsx,js,jsx}']`                                                                            |
+| `files.excludes`         | Additional ignores; `node_modules/**` is always ignored                                               |
+| `dirs.cache`             | `'cache.local'`; disposable per-file extraction cache                                                 |
+| `dirs.translations`      | `'translations'`                                                                                      |
+| `dirs.exports`           | `'exports'`                                                                                           |
+| `hashes`                 | Hash output is enabled unless set to `false`                                                          |
+| `translator`             | Optional translator or ordered fallback array                                                         |
+| `env`                    | `i18n.env` + `i18n.env.local` beside the config; set one path or `false`                              |
+| `convert`                | Optional named converters; matching names override built-ins                                          |
+| `meta`                   | Accepted by the config type; currently not applied to extracted records                               |
+| `lint.parameterChecks`   | `true`; configure `msg`, `jsx`, `text`, and `translation` checks with booleans or `{ enabled, skip }` |
+| `lint.forbiddenMessages` | Optional source-message rules; one rule or an array, with exact/contains matching or callbacks        |
 
 Narrow your file globs so the CLI doesn't scan generated bundles or unrelated source. For per-message metadata, use `t.meta()` in a literal chain.
+
+See [read-only lint checks](./overview#read-only-lint-checks) for matching rules, skip predicates, callback arguments, and strict exit behavior.
 
 ## Build-time configuration
 

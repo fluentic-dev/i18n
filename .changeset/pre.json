@@ -15,6 +15,7 @@
     "beta-two",
     "builtin-exchange-formats",
     "cli-friendly-reporting",
+    "cli-lint",
     "cli-polished-output",
     "compiler-package-filters",
     "filter-translator",

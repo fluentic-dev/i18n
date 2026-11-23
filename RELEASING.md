@@ -14,11 +14,13 @@ Changesets keeps the six workspace versions coordinated. Publishing is selective
 
 ## Publish
 
-Run `pnpm release` when ready to publish. It rebuilds, computes the plan, checks selected versions against npm, and publishes selected tarballs in dependency order with the active Changesets prerelease tag (currently `beta`), or `latest` outside prerelease mode.
+Run `pnpm release` from an interactive terminal when ready to publish. npm can prompt for browser/OTP authentication during publishing or tag updates; complete that prompt in your terminal. It rebuilds, computes the plan, checks selected versions against npm, and publishes selected tarballs in dependency order with the active Changesets prerelease tag (currently `beta`), or `latest` outside prerelease mode.
 
 A skipped package stays at its last published version even when its workspace version is higher. Its npm tag is untouched. For example, a beta.3 release can publish compiler and CLI while core, web, RN, and Next.js remain at beta.2.
 
 The command updates `release/published-<tag>.json` only after verifying each successful upload's npm integrity. Commit this ledger after publication, including after a partially successful release. Run releases from one checkout at a time. If publication fails, fix the cause and rerun `pnpm release`: already-recorded packages are skipped, and an uploaded but unrecorded version is recovered only when its archive integrity matches exactly. A conflicting immutable npm version fails before any package is uploaded.
+
+npm may accept an upload while it is still processing and unavailable to `npm view`. The script uploads all selected packages first, then polls every 10 seconds for up to 10 minutes before stopping. Each round checks all pending packages and records those that are available, even if others are still processing. Accepted uploads are checkpointed in `release/<version>/pending-<tag>.json`; retain this file and the tarballs when resuming. A rerun waits for pending uploads instead of uploading them again. It also recovers npm's specific “Cannot publish over previously staged version” conflict from earlier attempts, then verifies integrity before recording success. Other publish errors still fail normally. Preparation preserves an existing matching archive so retries use the same bytes. If npm is still processing after the wait, rerun `pnpm release` later without bumping the version.
 
 The release script replaces `changeset publish` and the old all-package tag synchronization command. Do not use those to publish this workspace: they would bypass content selection. The release script does not create Git commits, tags, or GitHub releases.
 

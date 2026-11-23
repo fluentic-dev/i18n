@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n-compiler",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "description": "Build-time compiler and bundler integrations for Fluentic i18n.",
   "license": "MIT",
   "repository": {
@@ -60,7 +60,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown && tsc -p tsconfig.build.json",
+    "build": "tsdown && tsc -p tsconfig.build.json && node ../../scripts/fix-declaration-imports.mjs dist",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm build && node --test test/*.test.mjs"

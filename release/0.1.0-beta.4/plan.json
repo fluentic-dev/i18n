@@ -1,0 +1,52 @@
+{
+  "fingerprintVersion": 1,
+  "version": "0.1.0-beta.4",
+  "tag": "beta",
+  "packages": [
+    {
+      "name": "@fluentic/i18n",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.4",
+      "checksum": "f5abd5b2c673b260a51dec05114191e7f236344c58e7dd031ba04d85716faa39"
+    },
+    {
+      "name": "@fluentic/i18n-compiler",
+      "action": "skip",
+      "version": "0.1.0-beta.4",
+      "workspaceVersion": "0.1.0-beta.4",
+      "checksum": "010bf505ec7d5a45d53ffb3e89d62658ef65bd53959cfd56f670b406633cd7da"
+    },
+    {
+      "name": "@fluentic/i18n-cli",
+      "action": "publish",
+      "version": "0.1.0-beta.4",
+      "previousVersion": "0.1.0-beta.2",
+      "checksum": "463b9e08bfb6317b8d39d9ae2894264c66ef6beb579098ab6ca14b88d2ce6c43",
+      "tarball": "fluentic-i18n-cli-0.1.0-beta.4.tgz",
+      "sha256": "3f565b9f557e06c15ba26f560a056373b1cadd13019e3e3dfcc53f4bac7a5407",
+      "integrity": "sha512-nMPD1sp4ecaoZfNnIY8XfeOXaXESy69JhK+Ad8j3hf+sk7xNT0lT9rsmCNoBMowt+PGKwBPPP4jG7v0JsLqxrg=="
+    },
+    {
+      "name": "@fluentic/i18n-nextjs",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.4",
+      "checksum": "bd3e5c3ed56650f40b2515479e59850c8969629b4d2e28a9d4846b055fb226dd"
+    },
+    {
+      "name": "@fluentic/i18n-rn",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.4",
+      "checksum": "52c0d14f33ec19d2eaaefc675ec5fea605ae535fa0d385d8d99e78c5dc05eeed"
+    },
+    {
+      "name": "@fluentic/i18n-web",
+      "action": "skip",
+      "version": "0.1.0-beta.2",
+      "workspaceVersion": "0.1.0-beta.4",
+      "checksum": "c3eaf1a71d7fdd64637f449be1003f65e1536cef55c69e1eb6c31c74812a7139"
+    }
+  ]
+}

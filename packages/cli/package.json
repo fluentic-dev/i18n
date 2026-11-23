@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n-cli",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "description": "Extraction, catalog, translation, and exchange tooling for Fluentic i18n.",
   "license": "MIT",
   "repository": {
@@ -43,7 +43,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown && tsc -p tsconfig.build.json",
+    "build": "tsdown && tsc -p tsconfig.build.json && node ../../scripts/fix-declaration-imports.mjs dist",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

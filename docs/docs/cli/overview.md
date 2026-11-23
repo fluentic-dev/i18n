@@ -287,3 +287,94 @@ pnpm i18n --debug translate
 ```
 
 Programmatic APIs still reject with errors so callers can handle them. Reporter `phase:end` events may include a `summary` and labeled `details`; the console displays details when provided. `createConsoleReporter(write, writeError, { color, verbose, cwd })` lets you control presentation and send warnings and errors to a separate stream. Info events can include labeled `details` or a copyable `block`, while retaining a readable `message`. Custom reporters still receive every file and translated-message event.
+
+## Read-only lint checks
+
+```sh
+pnpm exec fluentic-i18n lint
+pnpm exec fluentic-i18n lint --strict
+```
+
+`lint` scans the configured source files without using or writing the extraction cache. It checks `meta.jsonl` and every target language's `manual.jsonl` and `auto.jsonl`, reports diagnostics with rule codes and locations, and summarizes translation coverage. It does not generate translations, invoke providers, or write catalogs. As with other commands, loading the config executes your config module.
+
+Errors include invalid source/ICU syntax, malformed catalog rows, duplicate identities, translations without metadata, conflicting source metadata, and incompatible translation structures. ICU comparison checks arguments, tags, formatting styles, select keys, plural type, offset, and exact-number cases, while allowing language-specific plural categories.
+
+Source checks reuse the compiler's import, alias, and context resolution:
+
+```tsx
+// Error: missing runtime parameter.
+t.jsx('Hello {name}');
+// Correct:
+t.jsx('Hello {name}', { name: user.name });
+
+// Warning: missing descriptor schema entry.
+t.msg('Hello {name}');
+// Correct:
+t.msg('Hello {name}', { name: String });
+```
+
+Checks also cover nested parameters, missing rich-text handlers, extra keys, schema constructors passed as rendering values, and obviously incompatible literal values for numeric/date parameters. `{break}` is supplied by the runtime. Rich-text handlers are not required in primitive descriptor schemas.
+
+Use `lint.parameterChecks` to control parameter and descriptor schema diagnostics:
+
+```ts
+lint: {
+  parameterChecks: {
+    msg: false,
+    jsx: {
+      skip: [
+        { match: 'exact', terms: 'Legacy {name}' },
+        { match: 'contains', terms: ['Debug', 'Internal'], caseSensitive: false },
+        ({ message }) => message.startsWith('Test'),
+        { check: ({ message }) => message.startsWith('Preview') },
+      ],
+    },
+    text: true,
+    translation: {
+      skip: ({ message, translation }) => message === 'Legacy {name}' && translation === 'Legacy',
+    },
+  },
+}
+```
+
+`true` (the default) enables all parameter checks; `false` disables them all, including translation structure comparison. A map controls `msg`, `jsx`, `text`, and `translation` individually; omitted checks remain enabled. Each entry accepts a boolean or `{ enabled?, skip? }`. `enabled` defaults to `true`; `enabled: false` bypasses the check without calling `skip`. `skip` accepts one rule or an array. A rule can be `{ match: 'exact' | 'contains', terms: string | string[], caseSensitive?: boolean }`, a direct predicate, or `{ check: predicate }`. Matching uses the same implementation as `forbiddenMessages`. String rules always match the source message, including for translation checks. Exact matches compare the entire ICU string; contains matches substrings. Matching is case-sensitive by default.
+
+Rules run in order: any matching rule or predicate returning `true` skips the check and short-circuits later rules. If none matches, including an empty rule array, the check runs. A thrown or invalid callback result reports an error and stops that check's rule evaluation. Skip rules do not accept diagnostic `id`, `severity`, or `message` fields. Unlike `forbiddenMessages` callbacks, which return diagnostic text, skip callbacks return booleans.
+
+The `msg`, `jsx`, and `text` predicates receive `{ message: string }`, containing the ICU source message. The `translation` predicate receives `{ message: string, translation: string }`, with the catalog row's source and translated ICU strings. Translation predicates run for each non-empty, syntactically valid authoring row in both manual and automatic layers. Predicates are synchronous; throwing or returning a non-boolean produces a `parameter-check-error` while other checks continue. The top-level `parameterChecks` accepts only a boolean or the four-check map, never a top-level `{ enabled, skip }` object.
+
+Source switches cover missing/unused parameters, incompatible literal types, missing/incompatible descriptor schemas, and schema constructors passed as rendering values. The translation switch controls the full ICU structure comparison, including arguments, tags, select keys, plural offsets, and formatting styles. Source and translation ICU syntax, catalog row validity, extraction, forbidden-message rules, and coverage checks remain enabled even when parameter checks are disabled or skipped. Keep custom predicates read-only.
+
+Missing metadata, extraction drift (new/removed messages or changed notes/metadata), unused parameters, and missing or incompatible schema entries produce warnings. Errors exit with status 1; `--strict` also fails on warnings. Incomplete translation coverage is informational and does not fail either mode.
+
+Optional project-specific terms can be kept out of source messages:
+
+```ts
+export default defineConfig({
+  languages: { source: 'en', targets: ['fr'] },
+  lint: {
+    forbiddenMessages: [
+      { match: 'exact', terms: 'Acme' },
+      { match: 'contains', terms: ['WhatsApp', 'Booking.com'], caseSensitive: false },
+      {
+        id: 'custom-wording',
+        severity: 'error',
+        check: (icuMessage) =>
+          icuMessage.includes('internal-only')
+            ? 'Remove internal wording from this message.'
+            : undefined,
+      },
+    ],
+  },
+});
+```
+
+`forbiddenMessages` accepts one rule or an array of rules. `terms` also accepts a single string or an array. `exact` matches the entire ICU source string; `contains` matches a substring anywhere in it, including ICU arguments and branch text. Matching is case-sensitive unless `caseSensitive: false`. Rules default to warnings; set `severity: 'error'` to fail lint without `--strict`. An optional `message` replaces the built-in diagnostic for a matching rule, and `id` identifies the rule in diagnostics. No product names are forbidden by default.
+
+A callback can be provided directly (`forbiddenMessages: (icuMessage) => ...`) or as a rule's `check` property. It receives the complete ICU source string and returns a diagnostic string, an array of diagnostic strings, or `undefined` when valid. Async callbacks are supported. Callbacks run once per context/source identity across extracted and catalog-only messages. Exceptions and invalid return values produce rule-execution errors while other checks continue. Callbacks are trusted configuration code; keep them read-only to preserve lint's read-only behavior.
+
+The earlier `forbiddenTerms` option is replaced by `forbiddenMessages: { match: 'contains', terms: [...] }`.
+
+Static analysis checks literal messages and inline parameter/schema objects. Dynamic objects, spreads, computed keys, descriptor rendering, and callbacks are not fully validated; this is not a replacement for TypeScript or runtime tests. Structure comparison uses sets, so repeated-placeholder counts and every change in nesting or branch placement are not checked. Lint does not assess translation quality or validate generated merged catalogs.
+
+Programmatic callers can use `await lint(config, reporter?)` to receive diagnostics, error/warning counts, file/message totals, and coverage by locale. The function returns findings without throwing; configuration, source-root, and file-discovery failures can still throw.

@@ -1,11 +1,33 @@
+import type { MessageMatchRule, ParameterChecks } from '@fluentic/i18n-compiler';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { displayPath } from './display-path';
 import { contextualError } from './errors';
 import type { Converter, JsonValue, Translator } from './types';
 
+export type { MessageMatchRule, ParameterCheck, ParameterChecks, ParameterSkipRule } from '@fluentic/i18n-compiler';
+
 export type CatalogFormat = 'jsonl' | 'json' | 'cjs' | 'mjs';
 export type CompiledOptions = { hashLength?: number; };
+
+export type ForbiddenMessageCheck = (
+  icuMessage: string,
+) => string | string[] | undefined | Promise<string | string[] | undefined>;
+export type ForbiddenMessageRule =
+  | ForbiddenMessageCheck
+  | (
+    & {
+      id?: string;
+      severity?: 'warning' | 'error';
+    }
+    & (
+      | (MessageMatchRule & {
+        message?: string;
+        check?: never;
+      })
+      | { check: ForbiddenMessageCheck; match?: never; terms?: never; caseSensitive?: never; message?: never; }
+    )
+  );
 
 export type I18nConfig = {
   /** Emit [hash, compact AST] merged rows and enable build transforms. */
@@ -24,6 +46,12 @@ export type I18nConfig = {
   hashes?: boolean;
   dirs?: { cache?: string; exports?: string; translations?: string; };
   files?: { includes?: string[]; excludes?: string[]; };
+  /** Optional project-specific source wording checks. */
+  lint?: {
+    forbiddenMessages?: ForbiddenMessageRule | ForbiddenMessageRule[];
+    /** Enable parameter/schema and translation structure checks globally or individually. Defaults to true, including omitted methods. */
+    parameterChecks?: ParameterChecks;
+  };
   meta?: JsonValue;
 };
 
@@ -140,6 +168,77 @@ export function validateConfig(config: I18nConfig): void {
     if (config[field] !== undefined && !text(config[field])) fail(field, 'must be a non-empty path');
   }
   if (config.env !== undefined && config.env !== false && !text(config.env)) fail('env', 'must be a path or false');
+  if (config.lint !== undefined) {
+    if (!object(config.lint)) fail('lint', 'must be an object');
+    if ('forbiddenTerms' in config.lint) {
+      fail('lint.forbiddenTerms', 'was replaced by lint.forbiddenMessages; use { match: "contains", terms: [...] }');
+    }
+    const validateMatch = (rule: Record<string, unknown>, field: string) => {
+      if (!['exact', 'contains'].includes(rule.match as string)) fail(`${field}.match`, 'must be exact or contains');
+      const terms = Array.isArray(rule.terms) ? rule.terms : [rule.terms];
+      if (!terms.length || !terms.every(text)) {
+        fail(`${field}.terms`, 'must be a non-empty string or array of non-empty strings');
+      }
+      if (rule.caseSensitive !== undefined && typeof rule.caseSensitive !== 'boolean') {
+        fail(`${field}.caseSensitive`, 'must be a boolean');
+      }
+    };
+    const parameterChecks = config.lint.parameterChecks;
+    if (parameterChecks !== undefined && typeof parameterChecks !== 'boolean') {
+      if (!object(parameterChecks)) {
+        fail('lint.parameterChecks', 'must be a boolean or an object with msg, jsx, text, and translation checks');
+      }
+      for (const [method, check] of Object.entries(parameterChecks)) {
+        const field = `lint.parameterChecks.${method}`;
+        if (!['msg', 'jsx', 'text', 'translation'].includes(method)) {
+          fail(field, 'is not a supported check; use msg, jsx, text, or translation');
+        }
+        if (check === undefined || typeof check === 'boolean') continue;
+        if (!object(check)) fail(field, 'must be a boolean or an object with enabled and skip options');
+        for (const key of Object.keys(check)) {
+          if (!['enabled', 'skip'].includes(key)) fail(`${field}.${key}`, 'is not supported; use enabled or skip');
+        }
+        if (check.enabled !== undefined && typeof check.enabled !== 'boolean') {
+          fail(`${field}.enabled`, 'must be a boolean');
+        }
+        const skipRules = check.skip === undefined ? [] : Array.isArray(check.skip) ? check.skip : [check.skip];
+        for (const [index, rule] of skipRules.entries()) {
+          const ruleField = `${field}.skip[${index}]`;
+          if (typeof rule === 'function') continue;
+          if (!object(rule)) fail(ruleField, 'must be a matching rule or check callback');
+          const keys = 'check' in rule ? ['check'] : ['match', 'terms', 'caseSensitive'];
+          for (const key of Object.keys(rule)) {
+            if (!keys.includes(key)) fail(`${ruleField}.${key}`, `is not supported; use ${keys.join(', ')}`);
+          }
+          if ('check' in rule) {
+            if (typeof rule.check !== 'function') fail(`${ruleField}.check`, 'must be a callback');
+          } else validateMatch(rule, ruleField);
+        }
+      }
+    }
+
+    const configured = config.lint.forbiddenMessages;
+    const rules = configured === undefined ? [] : Array.isArray(configured) ? configured : [configured];
+    for (const [index, rule] of rules.entries()) {
+      const field = `lint.forbiddenMessages[${index}]`;
+      if (typeof rule === 'function') continue;
+      if (!object(rule)) fail(field, 'must be a matching rule or check callback');
+      if (rule.id !== undefined && !text(rule.id)) fail(`${field}.id`, 'must be a non-empty string');
+      if (rule.severity !== undefined && !['warning', 'error'].includes(rule.severity)) {
+        fail(`${field}.severity`, 'must be warning or error');
+      }
+      if ('check' in rule) {
+        if (typeof rule.check !== 'function') fail(`${field}.check`, 'must be a callback');
+        if (['match', 'terms', 'caseSensitive', 'message'].some((key) => key in rule)) {
+          fail(field, 'must not combine a callback with matching options');
+        }
+      } else {
+        validateMatch(rule, field);
+        if (rule.message !== undefined && !text(rule.message)) fail(`${field}.message`, 'must be a non-empty string');
+      }
+    }
+  }
+
   if (config.files !== undefined) {
     if (!object(config.files)) fail('files', 'must be an object');
     for (const key of ['includes', 'excludes'] as const) {

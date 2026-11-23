@@ -16,6 +16,7 @@ import { compileMessage, messageId } from './message';
 
 export { collectMessages } from './analyze';
 export * from './filter';
+export * from './lint';
 export * from './message';
 export type { PluginOptions } from './options';
 

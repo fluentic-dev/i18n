@@ -1,6 +1,6 @@
 {
   "name": "@fluentic/i18n",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "description": "Framework-independent internationalization primitives for Fluentic applications.",
   "license": "MIT",
   "repository": {

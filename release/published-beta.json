@@ -8,14 +8,14 @@
       "integrity": "sha512-xLtitrEPhvKDQkWK4x1kxP9680vbC70xVy13XKqOtEO7AaRr4g17G5P44m8mY+PjfKbnnEaPrwPAUy6fbos2mQ=="
     },
     "@fluentic/i18n-compiler": {
-      "version": "0.1.0-beta.2",
-      "checksum": "42ce8d22bc122ef6516c0296251cf91916d7e0302b105847a673abf053ba3d44",
-      "integrity": "sha512-Wng99VAzpbyYKbD3/KAx4EQwCZBGxYn5Sw+RBpT41oAmu6wNRuvyQOqyNqxx2BffcihV/eoQ2RTuLtnhGvg8Aw=="
+      "version": "0.1.0-beta.4",
+      "checksum": "010bf505ec7d5a45d53ffb3e89d62658ef65bd53959cfd56f670b406633cd7da",
+      "integrity": "sha512-xUPrPPHpPrW1Ox4KzS3Iss+ul0PhnZPLvBRE+Gbd5Af9ljmV3bJf0vUj7WnYalbQwgtim6/eAl2xkrecgxQaQA=="
     },
     "@fluentic/i18n-cli": {
-      "version": "0.1.0-beta.2",
-      "checksum": "3ab331dc63e2995a62f6ab4f72778e51f6e251e3f9ae127fefa59db51e89d1ec",
-      "integrity": "sha512-OFKCKSvmBr2VW4uaryuZ48pqQ844z3ogL5cW4BfEm78DJCwikRiMcI0x1LJiolLIUBPDeQsGG0uNsTIv99MEvA=="
+      "version": "0.1.0-beta.4",
+      "checksum": "5b9a63558efffd6d30e91bc2580c305740934750574119aaa2482383fe981630",
+      "integrity": "sha512-3QDstLW7vnbFX+a6dsYDwJVpXK7zXWQu6RsOlkPdQqMb66F2O2dAD2UIQEoLMeUV5IXiLQIaVpDdMc+Eo1Y8IQ=="
     },
     "@fluentic/i18n-nextjs": {
       "version": "0.1.0-beta.2",

@@ -2,8 +2,8 @@ import { displayPath } from './display-path';
 import { DiagnosticError, errorMessage, GuidanceError } from './errors';
 
 export type RunEvent =
-  | { type: 'phase:start'; phase: string; }
-  | { type: 'phase:end'; phase: string; summary?: string; details?: Record<string, string>; }
+  | { type: 'phase:start'; phase: string; separateBody?: boolean; }
+  | { type: 'phase:end'; phase: string; summary?: string; details?: Record<string, string>; separateDetails?: boolean; }
   | { type: 'file:processed'; file: string; }
   | { type: 'message:translated'; id: string; languageId: string; }
   | { type: 'info'; message: string; details?: Record<string, string>; block?: string; }
@@ -74,11 +74,12 @@ export function createConsoleReporter(
       case 'phase:start':
         blank();
         write(`${indent()}${paint('RUN', 36)}  ${paint(event.phase, 1)}`);
+        if (event.separateBody) blank();
         lastPhaseEnded = false;
         phases.push({ name: event.phase, started: performance.now() });
         break;
       case 'phase:end': {
-        if (lastPhaseEnded) blank();
+        if (lastPhaseEnded || event.separateDetails) blank();
         if (event.details) {
           for (const [label, value] of Object.entries(event.details)) write(`${indent()}${detail(label, value)}`);
         }

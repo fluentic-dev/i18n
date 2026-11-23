@@ -3,6 +3,7 @@ export * from './events';
 export * from './handoff';
 export * from './hash';
 export * from './jsonl';
+export * from './lint';
 export * from './run';
 export * from './store';
 export * from './translator';

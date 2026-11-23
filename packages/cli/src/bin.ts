@@ -9,6 +9,7 @@ import { isConfig, loadConfigEnv, registerConfigEnv, validateConfig } from './co
 import { displayPath } from './display-path';
 import { contextualError } from './errors';
 import { createConsoleReporter, type Reporter } from './events';
+import { lint } from './lint';
 import { conflict, exportTranslations, extract, importTranslations, merge, translateAuto, update } from './run';
 
 const program = new Command();
@@ -91,6 +92,14 @@ for (
     await action(config, reporter());
   });
 }
+
+program.command('lint')
+  .description('Check source messages, parameters, extraction drift, and translation catalogs without writing files')
+  .option('--strict', 'Exit with a failure when warnings are reported')
+  .action(async (options: { strict?: boolean; }) => {
+    const result = await lint(await loadConfig(), reporter());
+    if (result.errors || (options.strict && result.warnings)) process.exitCode = 1;
+  });
 
 for (const [name, action] of [['export', exportTranslations], ['import', importTranslations]] as const) {
   program.command(`${name} <converter>`)
